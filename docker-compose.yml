@@ -2,11 +2,12 @@ version: '3.8'
 
 services:
   app:
-    build: .
-    container_name: flask_back
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: flask_bdgdg
     environment:
       - FLASK_ENV=development
       - FLASK_APP=app.py
-    volumes:
-      - .:/app
+
     command: flask run --host=0.0.0.0 --port=5000
