@@ -5,7 +5,7 @@ FROM python:3.11
 WORKDIR /app
 
 # Copia los archivos necesarios
-COPY requirements.txt requirements.txt
+COPY requirements.txt .
 
 # Instala las dependencias
 RUN pip install --no-cache-dir -r requirements.txt
@@ -13,5 +13,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copia el resto de la aplicación
 COPY . .
 
-# Comando por defecto
+# Establece variables de entorno necesarias para Flask
+ENV FLASK_APP=app.py
+ENV FLASK_ENV=development
+
+
+# Comando por defecto para ejecutar la app
 CMD ["flask", "run", "--host=0.0.0.0", "--port=5000"]

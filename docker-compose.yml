@@ -4,9 +4,9 @@ services:
   app:
     build: .
     container_name: flask_back
-    
     environment:
       - FLASK_ENV=development
       - FLASK_APP=app.py
-    command: sh -c "ls -R /app && flask run --host=0.0.0.0 --port=5000"
-
+    volumes:
+      - .:/app
+    command: flask run --host=0.0.0.0 --port=5000
