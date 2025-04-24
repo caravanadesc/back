@@ -3,7 +3,8 @@ version: '3.8'
 services:
   app:
     build: .
-    container_name: flask_app
+    container_name: flask_back
+    
     environment:
       - FLASK_ENV=development
       - FLASK_APP=app.py
