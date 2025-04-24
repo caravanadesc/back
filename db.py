@@ -11,11 +11,11 @@ load_dotenv()
 pool = pooling.MySQLConnectionPool(
     pool_name        = os.getenv('DB_POOL_NAME', 'mypool'),
     pool_size        = int(os.getenv('DB_POOL_SIZE', 5)),
-    host             = os.getenv('DB_HOST', 'localhost'),
+    host             = os.getenv('DB_HOST', '69.62.71.171'),
     port             = int(os.getenv('DB_PORT', 3306)),
     user             = os.getenv('DB_USER', 'root'),
-    password         = os.getenv('DB_PASSWORD', ''),
-    database         = os.getenv('DB_NAME', ''),
+    password         = os.getenv('DB_PASSWORD', 'caravanadestrucs'),
+    database         = os.getenv('DB_NAME', 'lab-ux'),
     pool_reset_session = True
 )
 
