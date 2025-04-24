@@ -1,0 +1,8 @@
+Flask
+Flask-Mail
+Flask-Cors
+python-dotenv
+mysql-connector-python
+plotly
+geopy
+requests
