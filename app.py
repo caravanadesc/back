@@ -223,5 +223,76 @@ def login_usuario():
         cursor.close()
         conn.close()
 
+        
+@app.route('/reset_password', methods=['POST'])
+def reset_password():
+    data = request.get_json() or {}
+    print("🔍 Datos recibidos:", data)
+    correo = data.get('email')
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute(
+            "SELECT * FROM Usuario WHERE email = %s",
+            (correo,)
+        )
+        user = cursor.fetchone()
+        if not user:
+            return jsonify({'success': False, 'error': 'Usuario no válido'}), 401
+
+        # Datos del usuario
+        name = user['nombre']
+        email = user['email']
+        password = user['password']  # Recuperar la contraseña (¡no seguro, pero para este ejemplo!)
+
+        # === Correo para el usuario (con HTML) ===
+        user_subject = "Recuperación de tu contraseña"
+        user_body = f"""
+        <html>
+        <body style="font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px;">
+            <div style="max-width: 600px; margin: auto; background-color: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
+                <h2 style="color: #4CAF50;">Recuperación de tu contraseña</h2>
+                <p>Hola <strong>{name}</strong>,</p>
+                <p>Recibimos una solicitud para recuperar tu contraseña. Aquí tienes tu contraseña actual:</p>
+                <div style="background-color: #f1f1f1; padding: 10px; font-size: 1.2em; margin: 20px 0; border-radius: 5px;">
+                    <strong>Contraseña:</strong> {password}
+                </div>
+                <p style="color: #555;">Si no has solicitado este cambio, por favor ignora este correo.</p>
+                <p>Si tienes algún problema o deseas cambiar tu contraseña, no dudes en ponerte en contacto con nosotros.</p>
+                <br>
+                <p>Saludos,<br>
+                El equipo del LAB-UX</p>
+            </div>
+        </body>
+        </html>
+        """
+        user_msg = Message(subject=user_subject, recipients=[email], html=user_body)
+        mail.send(user_msg)
+
+        # === Correo para el LAB-UX (notificación interna) ===
+        admin_subject = "Solicitud de recuperación de contraseña"
+        admin_body = f"""
+        <html>
+        <body style="font-family: Arial, sans-serif;">
+            <h2 style="color: #4CAF50;">Nueva solicitud de recuperación de contraseña</h2>
+            <p><strong>Nombre:</strong> {name}</p>
+            <p><strong>Correo:</strong> {email}</p>
+            <p><strong>Contraseña recuperada:</strong> {password}</p>
+        </body>
+        </html>
+        """
+        admin_msg = Message(subject=admin_subject, recipients=['uxlabti@unca.edu.mx'], html=admin_body)
+        mail.send(admin_msg)
+
+        return jsonify({"message": "Correo con la contraseña enviado exitosamente"}), 200
+
+    except Exception as e:
+        print({"error": str(e)})
+        return jsonify({"error": str(e)}), 400
+    finally:
+        cursor.close()
+        conn.close()
+
+
 if __name__ == '__main__':
     app.run(debug=True)
