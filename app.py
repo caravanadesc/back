@@ -284,7 +284,7 @@ def reset_password():
         admin_msg = Message(subject=admin_subject, recipients=['uxlabti@unca.edu.mx'], html=admin_body)
         mail.send(admin_msg)
 
-        return jsonify({"message": "Correo con la contraseña enviado exitosamente"}), 200
+        return jsonify({"message": "Correo con la contraseña enviado exitosamente",'success': True}), 200
 
     except Exception as e:
         print({"error": str(e)})
