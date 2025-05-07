@@ -224,7 +224,7 @@ def login_usuario():
         conn.close()
 
         
-@app.route('/reset_password', methods=['POST'])
+@app.route('/usuarios/reset_password', methods=['POST'])
 def reset_password():
     data = request.get_json() or {}
     print("🔍 Datos recibidos:", data)
