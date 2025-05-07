@@ -249,22 +249,28 @@ def reset_password():
         user_subject = "Recuperación de tu contraseña"
         user_body = f"""
         <html>
-        <body style="font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px;">
-            <div style="max-width: 600px; margin: auto; background-color: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
-                <h2 style="color: #4CAF50;">Recuperación de tu contraseña</h2>
-                <p>Hola <strong>{name}</strong>,</p>
-                <p>Recibimos una solicitud para recuperar tu contraseña. Aquí tienes tu contraseña actual:</p>
-                <div style="background-color: #f1f1f1; padding: 10px; font-size: 1.2em; margin: 20px 0; border-radius: 5px;">
-                    <strong>Contraseña:</strong> {password}
-                </div>
-                <p style="color: #555;">Si no has solicitado este cambio, por favor ignora este correo.</p>
-                <p>Si tienes algún problema o deseas cambiar tu contraseña, no dudes en ponerte en contacto con nosotros.</p>
-                <br>
-                <p>Saludos,<br>
-                El equipo del LAB-UX</p>
+        <body style="font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 0; margin: 0;">
+            <!-- Barra superior estilo navbar -->
+            <div style="background-color: #000000; color: #ffffff; padding: 15px 20px; text-align: center; font-size: 1.5em;">
+            LAB-UX
+            </div>
+
+            <!-- Contenedor del mensaje -->
+            <div style="max-width: 600px; margin: 20px auto; background-color: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
+            <h2 style="color: #4CAF50;">Recuperación de tu contraseña</h2>
+            <p>Hola <strong>{name}</strong>,</p>
+            <p>Recibimos una solicitud para recuperar tu contraseña. Aquí tienes tu contraseña actual:</p>
+            <div style="background-color: #f1f1f1; padding: 10px; font-size: 1.2em; margin: 20px 0; border-radius: 5px;">
+                <strong>Contraseña:</strong> {password}
+            </div>
+            <p style="color: #555;">Si no has solicitado este cambio, por favor ignora este correo.</p>
+            <p>Si tienes algún problema o deseas cambiar tu contraseña, no dudes en ponerte en contacto con nosotros.</p>
+            <br>
+            <p>Saludos,<br>El equipo del LAB-UX</p>
             </div>
         </body>
         </html>
+
         """
         user_msg = Message(subject=user_subject, recipients=[email], html=user_body)
         mail.send(user_msg)
