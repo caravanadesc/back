@@ -1,9 +1,15 @@
 from flask import Flask, request, jsonify
 from flask_mail import Mail, Message
 from flask_cors import CORS
-from db import get_connection
+from routes import init_routes
+
 app = Flask(__name__)
 CORS(app)
+
+init_routes(app)
+if __name__ == '__main__':
+    app.run(debug=True)
+from db import get_connection
 
 
 TURNSTILE_SECRET_KEY = "0x4AAAAAABHphN1BKsuKf4HkLVE9jRuJdyc"
