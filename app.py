@@ -125,6 +125,15 @@ def get_usuarios():
     if 'correo' in request.args:
         filtros.append("correo = %s")
         params.append(request.args['correo'])
+    if 'tipo_usuario' in request.args:
+        filtros.append("tipo_usuario = %s")
+        params.append(request.args['tipo_usuario'])
+    if 'estado' in request.args:
+        filtros.append("estado = %s")
+        params.append(request.args['estado'])
+    if 'username' in request.args:
+        filtros.append("username = %s")
+        params.append(request.args['username'])
 
     where = f"WHERE {' AND '.join(filtros)}" if filtros else ""
     sql   = f"SELECT * FROM Usuario {where}"
