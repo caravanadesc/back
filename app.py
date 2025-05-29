@@ -107,10 +107,18 @@ def create_usuario():
 
 @app.route('/usuarios', methods=['GET'])
 def get_usuarios():
-    # Ejemplo de filtros opcionales: ?nombre=ana&correo=xyz
     filtros = []
     params  = []
 
+    # Búsqueda general en varios campos
+    q = request.args.get('q')
+    campos_busqueda = ['nombre', 'correo', 'username', 'apellido', 'telefono', 'tipo_usuario', 'estado']
+    if q:
+        condiciones = [f"{campo} LIKE %s" for campo in campos_busqueda]
+        filtros.append("(" + " OR ".join(condiciones) + ")")
+        params.extend([f"%{q}%"] * len(campos_busqueda))
+
+    # Filtros específicos
     if 'nombre' in request.args:
         filtros.append("nombre LIKE %s")
         params.append(f"%{request.args['nombre']}%")
