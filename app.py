@@ -112,7 +112,7 @@ def get_usuarios():
 
     # Búsqueda general en varios campos
     q = request.args.get('q')
-    campos_busqueda = ['nombre', 'correo', 'username', 'apellido', 'telefono', 'tipo_usuario', 'estado']
+    campos_busqueda = ['nombre', 'email', 'username', 'apellido', 'telefono', 'tipo_usuario', 'estado']
     if q:
         condiciones = [f"{campo} LIKE %s" for campo in campos_busqueda]
         filtros.append("(" + " OR ".join(condiciones) + ")")
