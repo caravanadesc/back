@@ -305,7 +305,7 @@ def reset_password():
         cursor.close()
         conn.close()
 
-@usuario_routes.route('/usuarios/buscar', methods=['GET'])
+@app.route('/usuarios', methods=['GET'])
 def buscar_usuarios():
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
