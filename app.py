@@ -305,47 +305,5 @@ def reset_password():
         cursor.close()
         conn.close()
 
-@app.route('/usuarios', methods=['GET'])
-def buscar_usuarios():
-    conn = get_connection()
-    cursor = conn.cursor(dictionary=True)
-
-    campos_busqueda = ['email', 'nombre', 'apellido', 'telefono', 'username', 'tipo_usuario', 'estado']
-    filtros = []
-    valores = []
-
-    q = request.args.get('q')
-    if q:
-        condiciones = [f"{campo} LIKE %s" for campo in campos_busqueda]
-        filtros.append("(" + " OR ".join(condiciones) + ")")
-        valores.extend([f"%{q}%"] * len(campos_busqueda))
-
-    for campo in campos_busqueda + ['ID']:
-        valor = request.args.get(campo)
-        if valor:
-            if campo == 'ID':
-                filtros.append(f"{campo} = %s")
-                valores.append(valor)
-            else:
-                filtros.append(f"{campo} LIKE %s")
-                valores.append(f"%{valor}%")
-
-    if not filtros:
-        cursor.close()
-        conn.close()
-        return jsonify({'error': 'Debes enviar al menos un parámetro de búsqueda'}), 400
-
-    where = " AND ".join(filtros)
-    sql = f"SELECT * FROM Usuario WHERE {where}"
-
-    cursor.execute(sql, valores)
-    usuarios = cursor.fetchall()
-    cursor.close()
-    conn.close()
-
-    if usuarios:
-        return jsonify(usuarios)
-    return jsonify({'error': 'No se encontraron usuarios'}), 404
-
 if __name__ == '__main__':
     app.run(debug=True)
