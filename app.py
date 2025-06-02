@@ -83,6 +83,7 @@ def create_usuario():
     nombre   = data.get('nombre')
     correo   = data.get('correo')
     password = data.get('password')
+    tipo_usuario     = data.get('tipo_usuario', 'usuario')
 
     if not all([nombre, correo, password]):
         return jsonify({'success': False, 'error': 'Faltan nombre, correo o password'}), 400
@@ -90,8 +91,8 @@ def create_usuario():
     conn   = get_connection()
     cursor = conn.cursor(dictionary=True)
     try:
-        sql = "INSERT INTO Usuario (nombre, correo, password) VALUES (%s, %s, %s)"
-        cursor.execute(sql, (nombre, correo, password))
+        sql = "INSERT INTO Usuario (nombre, correo, password,tipo_usuario) VALUES (%s, %s, %s,%s)"
+        cursor.execute(sql, (nombre, correo, password,tipo_usuario))
         conn.commit()
         nuevo_id = cursor.lastrowid
         return jsonify({
