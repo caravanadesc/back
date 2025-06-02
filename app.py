@@ -184,6 +184,7 @@ def update_usuario(id):
             params.append(data[campo])
 
     if not campos:
+        print("⚠️ No hay campos para actualizar")
         return jsonify({'success': False, 'error': 'No hay campos para actualizar'}), 400
 
     params.append(id)
