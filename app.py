@@ -177,8 +177,9 @@ def update_usuario(id):
     campos = []
     params = []
 
-    for campo in ('nombre', 'correo', 'password'):
+    for campo in ('nombre','apellido', 'correo', 'password' 'telefono', 'tipo_usuario', 'estado'):
         if campo in data:
+            print(f"🔄 Actualizando campo: {campo} con valor: {data[campo]}")
             campos.append(f"{campo} = %s")
             params.append(data[campo])
 
