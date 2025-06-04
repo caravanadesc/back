@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_mail import Mail, Message
 from flask_cors import CORS
 from routes.proyecto import bp  # Importar el Blueprint de solicitudes
@@ -327,6 +327,9 @@ def reset_password():
         conn.close()
 
 
+@app.route('/uploads/<path:filename>')
+def uploaded_file(filename):
+    return send_from_directory('src/uploads', filename)
 
 
 if __name__ == '__main__':
