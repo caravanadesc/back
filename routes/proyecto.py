@@ -25,7 +25,7 @@ def listar_proyectos():
     try:
         conn = get_connection()
         cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM proyecto")
+        cursor.execute("SELECT * FROM Proyecto")
         resultados = cursor.fetchall()
         cursor.close()
         conn.close()
@@ -38,7 +38,7 @@ def obtener_proyecto(id):
     try:
         conn = get_connection()
         cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM proyecto WHERE id = %s", (id,))
+        cursor.execute("SELECT * FROM Proyecto WHERE id = %s", (id,))
         resultado = cursor.fetchone()
         cursor.close()
         conn.close()
@@ -63,7 +63,7 @@ def crear_proyecto():
         conn = get_connection()
         cursor = conn.cursor()
         sql = """
-            INSERT INTO proyecto
+            INSERT INTO Proyecto
             (nombre, tipo_estudio, imagen, descripcion, fecha_inicio, fecha_fin, progreso, estado)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
         """
@@ -103,7 +103,7 @@ def actualizar_proyecto(id):
         conn = get_connection()
         cursor = conn.cursor()
         sql = """
-            UPDATE proyecto
+            UPDATE Proyecto
             SET nombre=%s, tipo_estudio=%s, imagen=%s, descripcion=%s, fecha_inicio=%s,
                 fecha_fin=%s, progreso=%s, estado=%s
             WHERE id=%s
@@ -133,7 +133,7 @@ def eliminar_proyecto(id):
         conn = get_connection()
         cursor = conn.cursor(dictionary=True)
         # 1. Obtener la ruta de la imagen antes de eliminar el registro
-        cursor.execute("SELECT imagen FROM proyecto WHERE id = %s", (id,))
+        cursor.execute("SELECT imagen FROM Proyecto WHERE id = %s", (id,))
         proyecto = cursor.fetchone()
         if not proyecto:
             cursor.close()
@@ -143,7 +143,7 @@ def eliminar_proyecto(id):
         imagen_path = proyecto.get('imagen')
         # 2. Eliminar el registro
         cursor = conn.cursor()
-        cursor.execute("DELETE FROM proyecto WHERE id = %s", (id,))
+        cursor.execute("DELETE FROM Proyecto WHERE id = %s", (id,))
         conn.commit()
         cursor.close()
         conn.close()
