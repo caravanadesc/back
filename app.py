@@ -1,12 +1,13 @@
 from flask import Flask, request, jsonify
 from flask_mail import Mail, Message
 from flask_cors import CORS
-
+from routes import bp  # Importar el Blueprint de solicitudes
 
 app = Flask(__name__)
 CORS(app)
 
-
+# Registrar el Blueprint directamente en la raíz
+app.register_blueprint(bp)
 if __name__ == '__main__':
     app.run(debug=True)
 from db import get_connection
@@ -324,6 +325,9 @@ def reset_password():
     finally:
         cursor.close()
         conn.close()
+
+
+
 
 if __name__ == '__main__':
     app.run(debug=True)
