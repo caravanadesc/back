@@ -233,7 +233,7 @@ def login_usuario():
     cursor = conn.cursor(dictionary=True)
     try:
         cursor.execute(
-            "SELECT * FROM Usuario WHERE email = %s",
+            "SELECT * FROM Usuario WHERE correo = %s",
             (correo,)
         )
         user = cursor.fetchone()
@@ -260,7 +260,7 @@ def reset_password():
     cursor = conn.cursor(dictionary=True)
     try:
         cursor.execute(
-            "SELECT * FROM Usuario WHERE email = %s",
+            "SELECT * FROM Usuario WHERE correo = %s",
             (correo,)
         )
         user = cursor.fetchone()
@@ -269,7 +269,7 @@ def reset_password():
 
         # Datos del usuario
         name = user['nombre']
-        email = user['email']
+        email = user['correo']
         password = user['password']  # Recuperar la contraseña (¡no seguro, pero para este ejemplo!)
 
         # === Correo para el usuario (con HTML) ===
