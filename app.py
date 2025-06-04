@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify
 from flask_mail import Mail, Message
 from flask_cors import CORS
-from routes import bp  # Importar el Blueprint de solicitudes
+from routes.proyecto import bp  # Importar el Blueprint de solicitudes
 
 app = Flask(__name__)
 CORS(app)
