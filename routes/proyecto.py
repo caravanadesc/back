@@ -17,7 +17,7 @@ def save_image(file):
         os.makedirs(UPLOAD_FOLDER, exist_ok=True)
         file_path = os.path.join(UPLOAD_FOLDER, filename)
         file.save(file_path)
-        return file_path
+        return filename  # <--- SOLO el nombre del archivo
     return None
 
 @bp.route('/proyectos', methods=['GET'])
