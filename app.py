@@ -10,7 +10,12 @@ app = Flask(__name__)
 CORS(app)
 
 # Configuración de Flask-Mail aquí si la usas
-# app.config['MAIL_SERVER'] = ...
+app.config['MAIL_SERVER'] = 'smtp.gmail.com'
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USERNAME'] = 'uxlabti@unca.edu.mx'
+app.config['MAIL_PASSWORD'] = 'uram xkfx ejsi gqqf'
+app.config['MAIL_DEFAULT_SENDER'] = 'uxlabti@unca.edu.mx'
 mail = Mail(app)
 
 app.register_blueprint(bp)

@@ -1,36 +1,20 @@
-from flask import Blueprint, request, jsonify
-from flask import Flask, request, jsonify, send_from_directory
-from flask_mail import Mail, Message
+from flask import Blueprint, request, jsonify, current_app
+from flask_mail import Message
 from db import get_connection
-import os
-from werkzeug.utils import secure_filename
 
 bp = Blueprint('usuarios', __name__)
 
-URNSTILE_SECRET_KEY = "0x4AAAAAABHphN1BKsuKf4HkLVE9jRuJdyc"
-
-# Configuración del servidor de correo
-bp.config['MAIL_SERVER'] = 'smtp.gmail.com'
-bp.config['MAIL_PORT'] = 587
-bp.config['MAIL_USE_TLS'] = True
-bp.config['MAIL_USERNAME'] = 'uxlabti@unca.edu.mx'  # Tu cuenta real
-bp.config['MAIL_PASSWORD'] = 'uram xkfx ejsi gqqf'        # Usa variable de entorno para producción
-bp.config['MAIL_DEFAULT_SENDER'] = 'uxlabti@unca.edu.mx'  # Misma cuenta o dominio permitido
-
-mail = Mail(bp)
 @bp.route('/solicitudes', methods=['POST'])
 def submit_form():
     try:
         data = request.get_json()
-
-        # Datos del usuario
         first_name = data.get('nombre')
         last_name = data.get('apellido')
         email = data.get('email')
         interest = data.get('areaInteres')
         message = data.get('mensaje')
 
-        # === Correo para el usuario (agradecimiento) ===
+        # Correo para el usuario
         user_subject = "Gracias por tu solicitud"
         user_body = f"""
 Hola {first_name} {last_name},
@@ -46,9 +30,9 @@ Saludos,
 El equipo del LAB-UX
         """
         user_msg = Message(subject=user_subject, recipients=[email], body=user_body)
-        mail.send(user_msg)
+        current_app.extensions['mail'].send(user_msg)
 
-        # === Correo para el LAB-UX (notificación interna) ===
+        # Correo para el LAB-UX
         admin_subject = "Nueva solicitud recibida"
         admin_body = f"""
 Se ha recibido una nueva solicitud de contacto.
@@ -59,7 +43,7 @@ Correo: {email}
 Mensaje: {message}
         """
         admin_msg = Message(subject=admin_subject, recipients=['uxlabti@unca.edu.mx'], body=admin_body)
-        mail.send(admin_msg)
+        current_app.extensions['mail'].send(admin_msg)
 
         return jsonify({"message": "Formulario recibido y correos enviados exitosamente"}), 200
 
@@ -67,18 +51,13 @@ Mensaje: {message}
         print({"error": str(e)})
         return jsonify({"error": str(e)}), 400
 
-
-
-
-
-
 @bp.route('/usuarios', methods=['POST'])
 def create_usuario():
     data = request.get_json() or {}
     nombre   = data.get('nombre')
     correo   = data.get('correo')
     password = data.get('password')
-    tipo_usuario     = data.get('tipo_usuario', 'usuario')
+    tipo_usuario = data.get('tipo_usuario', 'usuario')
 
     if not all([nombre, correo, password]):
         return jsonify({'success': False, 'error': 'Faltan nombre, correo o password'}), 400
@@ -86,8 +65,8 @@ def create_usuario():
     conn   = get_connection()
     cursor = conn.cursor(dictionary=True)
     try:
-        sql = "INSERT INTO Usuario (nombre, correo, password,tipo_usuario) VALUES (%s, %s, %s,%s)"
-        cursor.execute(sql, (nombre, correo, password,tipo_usuario))
+        sql = "INSERT INTO Usuario (nombre, correo, password, tipo_usuario) VALUES (%s, %s, %s, %s)"
+        cursor.execute(sql, (nombre, correo, password, tipo_usuario))
         conn.commit()
         nuevo_id = cursor.lastrowid
         return jsonify({
@@ -100,7 +79,6 @@ def create_usuario():
         cursor.close()
         conn.close()
 
-
 @bp.route('/usuarios', methods=['GET'])
 def get_usuarios():
     filtros = []
@@ -108,28 +86,28 @@ def get_usuarios():
 
     # Búsqueda general en varios campos
     q = request.args.get('q')
-    campos_busqueda = ['nombre', 'email', 'username', 'apellido', 'telefono', 'tipo_usuario', 'estado']
+    campos_busqueda = ['nombre', 'correo', 'username', 'apellido', 'telefono', 'tipo_usuario', 'estado']
     if q:
         condiciones = [f"{campo} LIKE %s" for campo in campos_busqueda]
-        filtros.bpend("(" + " OR ".join(condiciones) + ")")
+        filtros.append("(" + " OR ".join(condiciones) + ")")
         params.extend([f"%{q}%"] * len(campos_busqueda))
 
     # Filtros específicos
     if 'nombre' in request.args:
-        filtros.bpend("nombre LIKE %s")
-        params.bpend(f"%{request.args['nombre']}%")
+        filtros.append("nombre LIKE %s")
+        params.append(f"%{request.args['nombre']}%")
     if 'correo' in request.args:
-        filtros.bpend("correo = %s")
-        params.bpend(request.args['correo'])
+        filtros.append("correo = %s")
+        params.append(request.args['correo'])
     if 'tipo_usuario' in request.args:
-        filtros.bpend("tipo_usuario = %s")
-        params.bpend(request.args['tipo_usuario'])
+        filtros.append("tipo_usuario = %s")
+        params.append(request.args['tipo_usuario'])
     if 'estado' in request.args:
-        filtros.bpend("estado = %s")
-        params.bpend(request.args['estado'])
+        filtros.append("estado = %s")
+        params.append(request.args['estado'])
     if 'username' in request.args:
-        filtros.bpend("username = %s")
-        params.bpend(request.args['username'])
+        filtros.append("username = %s")
+        params.append(request.args['username'])
 
     where = f"WHERE {' AND '.join(filtros)}" if filtros else ""
     sql   = f"SELECT * FROM Usuario {where}"
@@ -150,7 +128,6 @@ def get_usuarios():
         cursor.close()
         conn.close()
 
-
 @bp.route('/usuarios/<int:id>', methods=['GET'])
 def get_usuario_por_id(id):
     conn   = get_connection()
@@ -165,24 +142,21 @@ def get_usuario_por_id(id):
         cursor.close()
         conn.close()
 
-
 @bp.route('/usuarios/<int:id>', methods=['PUT'])
 def update_usuario(id):
     data = request.get_json() or {}
     campos = []
     params = []
 
-    for campo in ('nombre','apellido', 'correo', 'password' 'telefono', 'tipo_usuario', 'estado'):
+    for campo in ('nombre', 'apellido', 'correo', 'password', 'telefono', 'tipo_usuario', 'estado'):
         if campo in data:
-            print(f"🔄 Actualizando campo: {campo} con valor: {data[campo]}")
-            campos.bpend(f"{campo} = %s")
-            params.bpend(data[campo])
+            campos.append(f"{campo} = %s")
+            params.append(data[campo])
 
     if not campos:
-        print("⚠️ No hay campos para actualizar")
         return jsonify({'success': False, 'error': 'No hay campos para actualizar'}), 400
 
-    params.bpend(id)
+    params.append(id)
     sql = f"UPDATE Usuario SET {', '.join(campos)} WHERE id = %s"
 
     conn   = get_connection()
@@ -196,7 +170,6 @@ def update_usuario(id):
     finally:
         cursor.close()
         conn.close()
-
 
 @bp.route('/usuarios/<int:id>', methods=['DELETE'])
 def delete_usuario(id):
@@ -212,11 +185,9 @@ def delete_usuario(id):
         cursor.close()
         conn.close()
 
-
 @bp.route('/usuarios/login', methods=['POST'])
 def login_usuario():
     data = request.get_json() or {}
-    print("🔍 Datos recibidos:", data)
     correo   = data.get('email')
     password = data.get('password')
 
@@ -234,7 +205,6 @@ def login_usuario():
         if not user or user['password'] != password:
             return jsonify({'success': False, 'error': 'Credenciales inválidas'}), 401
 
-        # opcional: eliminar password antes de devolverlo
         del user['password']
         return jsonify({'success': True, 'usuario': user}), 200
 
@@ -244,11 +214,9 @@ def login_usuario():
         cursor.close()
         conn.close()
 
-        
 @bp.route('/usuarios/reset_password', methods=['POST'])
 def reset_password():
     data = request.get_json() or {}
-    print("🔍 Datos recibidos:", data)
     correo = data.get('email')
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
@@ -261,22 +229,17 @@ def reset_password():
         if not user:
             return jsonify({'success': False, 'error': 'Usuario no válido'}), 401
 
-        # Datos del usuario
         name = user['nombre']
         email = user['correo']
-        password = user['password']  # Recuperar la contraseña (¡no seguro, pero para este ejemplo!)
+        password = user['password']
 
-        # === Correo para el usuario (con HTML) ===
         user_subject = "Recuperación de tu contraseña"
         user_body = f"""
         <html>
         <body style="font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 0; margin: 0;">
-            <!-- Barra superior estilo navbar -->
             <div style="background-color: #000000; color: #ffffff; padding: 15px 20px; text-align: center; font-size: 1.5em;">
             LAB-UX
             </div>
-
-            <!-- Contenedor del mensaje -->
             <div style="max-width: 600px; margin: 20px auto; background-color: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
             <h2 style="color: #4CAF50;">Recuperación de tu contraseña</h2>
             <p>Hola <strong>{name}</strong>,</p>
@@ -291,12 +254,10 @@ def reset_password():
             </div>
         </body>
         </html>
-
         """
         user_msg = Message(subject=user_subject, recipients=[email], html=user_body)
-        mail.send(user_msg)
+        current_app.extensions['mail'].send(user_msg)
 
-        # === Correo para el LAB-UX (notificación interna) ===
         admin_subject = "Solicitud de recuperación de contraseña"
         admin_body = f"""
         <html>
@@ -309,12 +270,11 @@ def reset_password():
         </html>
         """
         admin_msg = Message(subject=admin_subject, recipients=['uxlabti@unca.edu.mx'], html=admin_body)
-        mail.send(admin_msg)
+        current_app.extensions['mail'].send(admin_msg)
 
         return jsonify({"message": "Correo con la contraseña enviado exitosamente",'success': True}), 200
 
     except Exception as e:
-        print({"error": str(e)})
         return jsonify({"error": str(e)}), 400
     finally:
         cursor.close()
