@@ -8,7 +8,7 @@ def listar_areas():
     try:
         conn = get_connection()
         cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM area_investigacion")
+        cursor.execute("SELECT * FROM Area_Investigacion")
         areas = cursor.fetchall()
         cursor.close()
         conn.close()
@@ -21,7 +21,7 @@ def obtener_area(id):
     try:
         conn = get_connection()
         cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM area_investigacion WHERE id = %s", (id,))
+        cursor.execute("SELECT * FROM Area_Investigacion WHERE id = %s", (id,))
         area = cursor.fetchone()
         cursor.close()
         conn.close()
@@ -37,7 +37,7 @@ def crear_area():
         data = request.get_json()
         conn = get_connection()
         cursor = conn.cursor()
-        sql = "INSERT INTO area_investigacion (nombre, descripcion) VALUES (%s, %s)"
+        sql = "INSERT INTO Area_Investigacion (nombre, descripcion) VALUES (%s, %s)"
         cursor.execute(sql, (data.get('nombre'), data.get('descripcion')))
         conn.commit()
         new_id = cursor.lastrowid
@@ -53,7 +53,7 @@ def actualizar_area(id):
         data = request.get_json()
         conn = get_connection()
         cursor = conn.cursor()
-        sql = "UPDATE area_investigacion SET nombre=%s, descripcion=%s WHERE id=%s"
+        sql = "UPDATE Area_Investigacion SET nombre=%s, descripcion=%s WHERE id=%s"
         cursor.execute(sql, (data.get('nombre'), data.get('descripcion'), id))
         conn.commit()
         cursor.close()
@@ -67,7 +67,7 @@ def eliminar_area(id):
     try:
         conn = get_connection()
         cursor = conn.cursor()
-        cursor.execute("DELETE FROM area_investigacion WHERE id = %s", (id,))
+        cursor.execute("DELETE FROM Area_Investigacion WHERE id = %s", (id,))
         conn.commit()
         cursor.close()
         conn.close()
