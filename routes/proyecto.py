@@ -23,9 +23,39 @@ def save_image(file):
 @bp.route('/proyectos', methods=['GET'])
 def listar_proyectos():
     try:
+        filtros = []
+        valores = []
+        # Lista de campos permitidos para filtrar
+        campos = [
+            'id', 'nombre', 'tipo_estudio', 'imagen', 'descripcion',
+            'fecha_inicio', 'fecha_fin', 'progreso', 'estado',
+            'fecha_creacion', 'fecha_actualizacion'
+        ]
+
+        # Filtro de búsqueda general (texto completo)
+        q = request.args.get('q')
+        if q:
+            condiciones = [f"{campo} LIKE %s" for campo in campos if campo != 'id' and campo != 'progreso']
+            filtros.append("(" + " OR ".join(condiciones) + ")")
+            valores.extend([f"%{q}%"] * len(condiciones))
+
+        # Filtros específicos por campo
+        for campo in campos:
+            valor = request.args.get(campo)
+            if valor is not None:
+                if campo in ['id', 'progreso']:
+                    filtros.append(f"{campo} = %s")
+                    valores.append(valor)
+                else:
+                    filtros.append(f"{campo} LIKE %s")
+                    valores.append(f"%{valor}%")
+
+        where = f"WHERE {' AND '.join(filtros)}" if filtros else ""
+        sql = f"SELECT * FROM Proyecto {where}"
+
         conn = get_connection()
         cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM Proyecto")
+        cursor.execute(sql, valores)
         resultados = cursor.fetchall()
         cursor.close()
         conn.close()
