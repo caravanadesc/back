@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify, send_from_directory
 from flask_mail import Mail
 from flask_cors import CORS
 from routes.proyecto import bp
-from routes.areainvestigacion import bp as areainvestigacion_bp
+from routes.areainvestigacion import bp_area as areainvestigacion_bp
 from routes.usuarios import bp as usuarios_bp
 from db import get_connection
 
