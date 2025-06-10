@@ -62,18 +62,50 @@ def create_usuario():
     if not all([nombre, correo, password]):
         return jsonify({'success': False, 'error': 'Faltan nombre, correo o password'}), 400
 
-    conn   = get_connection()
+    conn = get_connection()
     cursor = conn.cursor(dictionary=True)
     try:
+        # 1. Crear usuario principal
         sql = "INSERT INTO Usuario (nombre, correo, password, tipo_usuario) VALUES (%s, %s, %s, %s)"
         cursor.execute(sql, (nombre, correo, password, tipo_usuario))
+        usuario_id = cursor.lastrowid
+
+        # 2. Usuario_Detalle (opcional)
+        detalle = data.get('detalle')
+        if detalle:
+            sql = """INSERT INTO Usuario_Detalle (ID_usuario, telefono, direccion, ...) VALUES (%s, %s, %s, ...)"""
+            cursor.execute(sql, (usuario_id, detalle.get('telefono'), detalle.get('direccion')))  # agrega más campos según tu modelo
+
+        # 3. Usuario_Area_Investigacion (lista de IDs de áreas)
+        areas = data.get('areas_investigacion', [])
+        for area in areas:
+            sql = "INSERT INTO Usuario_Area_Investigacion (ID_usuario, ID_area) VALUES (%s, %s)"
+            cursor.execute(sql, (usuario_id, area.get('ID_area')))
+
+        # 4. Experiencia_Laboral (lista de experiencias)
+        experiencias = data.get('experiencia_laboral', [])
+        for exp in experiencias:
+            sql = """INSERT INTO Experiencia_Laboral (ID_usuario, empresa, puesto, fecha_inicio, fecha_fin, descripcion)
+                     VALUES (%s, %s, %s, %s, %s, %s)"""
+            cursor.execute(sql, (
+                usuario_id, exp.get('empresa'), exp.get('puesto'),
+                exp.get('fecha_inicio'), exp.get('fecha_fin'), exp.get('descripcion')
+            ))
+
+        # 5. Formacion_Academica (lista de formaciones)
+        formaciones = data.get('formacion_academica', [])
+        for form in formaciones:
+            sql = """INSERT INTO Formacion_Academica (ID_usuario, institucion, grado, fecha_inicio, fecha_fin, descripcion)
+                     VALUES (%s, %s, %s, %s, %s, %s)"""
+            cursor.execute(sql, (
+                usuario_id, form.get('institucion'), form.get('grado'),
+                form.get('fecha_inicio'), form.get('fecha_fin'), form.get('descripcion')
+            ))
+
         conn.commit()
-        nuevo_id = cursor.lastrowid
-        return jsonify({
-            'success': True,
-            'usuario': {'id': nuevo_id, 'nombre': nombre, 'correo': correo}
-        }), 201
+        return jsonify({'success': True, 'usuario_id': usuario_id}), 201
     except Exception as e:
+        conn.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
     finally:
         cursor.close()
@@ -152,19 +184,71 @@ def update_usuario(id):
             campos.append(f"{campo} = %s")
             params.append(data[campo])
 
-    if not campos:
-        return jsonify({'success': False, 'error': 'No hay campos para actualizar'}), 400
+    if campos:
+        params.append(id)
+        sql = f"UPDATE Usuario SET {', '.join(campos)} WHERE ID = %s"
+    else:
+        sql = None
 
-    params.append(id)
-    sql = f"UPDATE Usuario SET {', '.join(campos)} WHERE id = %s"
-
-    conn   = get_connection()
+    conn = get_connection()
     cursor = conn.cursor(dictionary=True)
     try:
-        cursor.execute(sql, params)
+        # 1. Actualizar usuario principal
+        if sql:
+            cursor.execute(sql, params)
+
+        # 2. Actualizar o insertar Usuario_Detalle
+        detalle = data.get('detalle')
+        if detalle:
+            cursor.execute("SELECT * FROM Usuario_Detalle WHERE ID_usuario = %s", (id,))
+            if cursor.fetchone():
+                # Actualizar
+                detalle_campos = []
+                detalle_params = []
+                for campo in ('telefono', 'direccion'):  # agrega más campos según tu modelo
+                    if campo in detalle:
+                        detalle_campos.append(f"{campo} = %s")
+                        detalle_params.append(detalle[campo])
+                if detalle_campos:
+                    detalle_params.append(id)
+                    cursor.execute(f"UPDATE Usuario_Detalle SET {', '.join(detalle_campos)} WHERE ID_usuario = %s", detalle_params)
+            else:
+                # Insertar
+                cursor.execute(
+                    "INSERT INTO Usuario_Detalle (ID_usuario, telefono, direccion) VALUES (%s, %s, %s)",
+                    (id, detalle.get('telefono'), detalle.get('direccion'))
+                )
+
+        # 3. Actualizar áreas de investigación (borrar e insertar)
+        if 'areas_investigacion' in data:
+            cursor.execute("DELETE FROM Usuario_Area_Investigacion WHERE ID_usuario = %s", (id,))
+            for area in data['areas_investigacion']:
+                cursor.execute("INSERT INTO Usuario_Area_Investigacion (ID_usuario, ID_area) VALUES (%s, %s)", (id, area.get('ID_area')))
+
+        # 4. Actualizar experiencia laboral (borrar e insertar)
+        if 'experiencia_laboral' in data:
+            cursor.execute("DELETE FROM Experiencia_Laboral WHERE ID_usuario = %s", (id,))
+            for exp in data['experiencia_laboral']:
+                cursor.execute(
+                    """INSERT INTO Experiencia_Laboral (ID_usuario, empresa, puesto, fecha_inicio, fecha_fin, descripcion)
+                       VALUES (%s, %s, %s, %s, %s, %s)""",
+                    (id, exp.get('empresa'), exp.get('puesto'), exp.get('fecha_inicio'), exp.get('fecha_fin'), exp.get('descripcion'))
+                )
+
+        # 5. Actualizar formación académica (borrar e insertar)
+        if 'formacion_academica' in data:
+            cursor.execute("DELETE FROM Formacion_Academica WHERE ID_usuario = %s", (id,))
+            for form in data['formacion_academica']:
+                cursor.execute(
+                    """INSERT INTO Formacion_Academica (ID_usuario, institucion, grado, fecha_inicio, fecha_fin, descripcion)
+                       VALUES (%s, %s, %s, %s, %s, %s)""",
+                    (id, form.get('institucion'), form.get('grado'), form.get('fecha_inicio'), form.get('fecha_fin'), form.get('descripcion'))
+                )
+
         conn.commit()
         return jsonify({'success': True}), 200
     except Exception as e:
+        conn.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
     finally:
         cursor.close()
