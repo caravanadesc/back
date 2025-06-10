@@ -83,45 +83,44 @@ def create_usuario():
 def get_usuarios():
     filtros = []
     params  = []
-
-    # Búsqueda general en varios campos
     q = request.args.get('q')
     campos_busqueda = ['nombre', 'correo', 'username', 'apellido', 'telefono', 'tipo_usuario', 'estado']
     if q:
         condiciones = [f"{campo} LIKE %s" for campo in campos_busqueda]
         filtros.append("(" + " OR ".join(condiciones) + ")")
         params.extend([f"%{q}%"] * len(campos_busqueda))
-
-    # Filtros específicos
-    if 'nombre' in request.args:
-        filtros.append("nombre LIKE %s")
-        params.append(f"%{request.args['nombre']}%")
-    if 'correo' in request.args:
-        filtros.append("correo = %s")
-        params.append(request.args['correo'])
-    if 'tipo_usuario' in request.args:
-        filtros.append("tipo_usuario = %s")
-        params.append(request.args['tipo_usuario'])
-    if 'estado' in request.args:
-        filtros.append("estado = %s")
-        params.append(request.args['estado'])
-    if 'username' in request.args:
-        filtros.append("username = %s")
-        params.append(request.args['username'])
-
+    for campo in ['nombre', 'correo', 'tipo_usuario', 'estado', 'username']:
+        if campo in request.args:
+            filtros.append(f"{campo} = %s")
+            params.append(request.args[campo])
     where = f"WHERE {' AND '.join(filtros)}" if filtros else ""
     sql   = f"SELECT * FROM Usuario {where}"
 
-    conn   = get_connection()
+    conn = get_connection()
     cursor = conn.cursor(dictionary=True)
     try:
         cursor.execute(sql, params)
-        filas = cursor.fetchall()
-        return jsonify({
-            'success': True,
-            'usuarios': filas,
-            'total': len(filas)
-        }), 200
+        usuarios = cursor.fetchall()
+        for usuario in usuarios:
+            uid = usuario['ID']
+            # Usuario_Detalle
+            cursor.execute("SELECT * FROM Usuario_Detalle WHERE ID_usuario = %s", (uid,))
+            usuario['detalle'] = cursor.fetchone()
+            # Usuario_Area_Investigacion
+            cursor.execute("""
+                SELECT uai.*, ai.nombre AS area_nombre, ai.descripcion AS area_descripcion
+                FROM Usuario_Area_Investigacion uai
+                LEFT JOIN Area_Investigacion ai ON uai.ID_area = ai.ID
+                WHERE uai.ID_usuario = %s
+            """, (uid,))
+            usuario['areas_investigacion'] = cursor.fetchall()
+            # Experiencia_Laboral
+            cursor.execute("SELECT * FROM Experiencia_Laboral WHERE ID_usuario = %s", (uid,))
+            usuario['experiencia_laboral'] = cursor.fetchall()
+            # Formacion_Academica
+            cursor.execute("SELECT * FROM Formacion_Academica WHERE ID_usuario = %s", (uid,))
+            usuario['formacion_academica'] = cursor.fetchall()
+        return jsonify({'success': True, 'usuarios': usuarios, 'total': len(usuarios)}), 200
     except Exception as e:
         return jsonify({'success': False, 'usuarios': [], 'total': 0, 'error': str(e)}), 500
     finally:
