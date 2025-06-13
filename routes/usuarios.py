@@ -1,8 +1,35 @@
-from flask import Blueprint, request, jsonify, current_app
+import os
+from flask import Blueprint, request, jsonify, current_app, send_from_directory
 from flask_mail import Message
 from db import get_connection
+from werkzeug.utils import secure_filename
 
 bp = Blueprint('usuarios', __name__)
+
+UPLOAD_FOLDER = 'src/uploads/usuarios'
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def save_foto(file):
+    if file and allowed_file(file.filename):
+        filename = secure_filename(file.filename)
+        os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+        file_path = os.path.join(UPLOAD_FOLDER, filename)
+        file.save(file_path)
+        return filename  # Solo el nombre del archivo
+    return None
+
+def delete_foto(filename):
+    if filename:
+        file_path = os.path.join(UPLOAD_FOLDER, filename)
+        if os.path.isfile(file_path):
+            os.remove(file_path)
+
+@bp.route('/usuarios/<filename>')
+def get_foto_usuario(filename):
+    return send_from_directory(UPLOAD_FOLDER, filename)
 
 @bp.route('/solicitudes', methods=['POST'])
 def submit_form():
@@ -53,21 +80,28 @@ Mensaje: {message}
 
 @bp.route('/usuarios', methods=['POST'])
 def create_usuario():
-    data = request.get_json() or {}
-    nombre   = data.get('nombre')
-    correo   = data.get('correo')
-    password = data.get('password')
-    tipo_usuario = data.get('tipo_usuario', 'usuario')
-
-    if not all([nombre, correo, password]):
-        return jsonify({'success': False, 'error': 'Faltan nombre, correo o password'}), 400
-
-    conn = get_connection()
-    cursor = conn.cursor(dictionary=True)
     try:
-        # 1. Crear usuario principal
-        sql = "INSERT INTO Usuario (nombre, correo, password, tipo_usuario) VALUES (%s, %s, %s, %s)"
-        cursor.execute(sql, (nombre, correo, password, tipo_usuario))
+        if request.content_type.startswith('multipart/form-data'):
+            data = request.form
+            foto = None
+            if 'foto' in request.files:
+                foto = save_foto(request.files['foto'])
+        else:
+            data = request.get_json() or {}
+            foto = data.get('foto')
+
+        nombre   = data.get('nombre')
+        correo   = data.get('correo')
+        password = data.get('password')
+        tipo_usuario = data.get('tipo_usuario', 'usuario')
+
+        if not all([nombre, correo, password]):
+            return jsonify({'success': False, 'error': 'Faltan nombre, correo o password'}), 400
+
+        conn = get_connection()
+        cursor = conn.cursor(dictionary=True)
+        sql = "INSERT INTO Usuario (nombre, correo, password, tipo_usuario, foto) VALUES (%s, %s, %s, %s, %s)"
+        cursor.execute(sql, (nombre, correo, password, tipo_usuario, foto))
         usuario_id = cursor.lastrowid
 
         # 2. Usuario_Detalle (opcional)
@@ -135,6 +169,9 @@ def get_usuarios():
         usuarios = cursor.fetchall()
         for usuario in usuarios:
             uid = usuario['ID']
+            # Si hay foto, agrega la URL pública
+            if usuario.get('foto'):
+                usuario['foto_url'] = f"/usuarios/{usuario['foto']}"
             # Usuario_Detalle
             cursor.execute("SELECT * FROM Usuario_Detalle WHERE ID_usuario = %s", (uid,))
             usuario['detalle'] = cursor.fetchone()
@@ -175,25 +212,46 @@ def get_usuario_por_id(id):
 
 @bp.route('/usuarios/<int:id>', methods=['PUT'])
 def update_usuario(id):
-    data = request.get_json() or {}
-    campos = []
-    params = []
-
-    for campo in ('nombre', 'apellido', 'correo', 'password', 'telefono', 'tipo_usuario', 'estado'):
-        if campo in data:
-            campos.append(f"{campo} = %s")
-            params.append(data[campo])
-
-    if campos:
-        params.append(id)
-        sql = f"UPDATE Usuario SET {', '.join(campos)} WHERE ID = %s"
-    else:
-        sql = None
-
-    conn = get_connection()
-    cursor = conn.cursor(dictionary=True)
     try:
-        # 1. Actualizar usuario principal
+        if request.content_type.startswith('multipart/form-data'):
+            data = request.form
+            nueva_foto = None
+            if 'foto' in request.files:
+                nueva_foto = save_foto(request.files['foto'])
+        else:
+            data = request.get_json() or {}
+            nueva_foto = data.get('foto')
+
+        campos = []
+        params = []
+
+        for campo in ('nombre', 'apellido', 'correo', 'password', 'telefono', 'tipo_usuario', 'estado'):
+            if campo in data:
+                campos.append(f"{campo} = %s")
+                params.append(data[campo])
+
+        # Si hay nueva foto, obtener la anterior y actualizar
+        if nueva_foto:
+            # Obtener foto anterior
+            conn = get_connection()
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute("SELECT foto FROM Usuario WHERE ID = %s", (id,))
+            anterior = cursor.fetchone()
+            if anterior and anterior['foto']:
+                delete_foto(anterior['foto'])
+            campos.append("foto = %s")
+            params.append(nueva_foto)
+            cursor.close()
+            conn.close()
+
+        if campos:
+            params.append(id)
+            sql = f"UPDATE Usuario SET {', '.join(campos)} WHERE ID = %s"
+        else:
+            sql = None
+
+        conn = get_connection()
+        cursor = conn.cursor(dictionary=True)
         if sql:
             cursor.execute(sql, params)
 
@@ -256,10 +314,15 @@ def update_usuario(id):
 
 @bp.route('/usuarios/<int:id>', methods=['DELETE'])
 def delete_usuario(id):
-    conn   = get_connection()
+    conn = get_connection()
     cursor = conn.cursor(dictionary=True)
     try:
-        cursor.execute("DELETE FROM Usuario WHERE id = %s", (id,))
+        # Obtener foto antes de borrar usuario
+        cursor.execute("SELECT foto FROM Usuario WHERE ID = %s", (id,))
+        usuario = cursor.fetchone()
+        if usuario and usuario['foto']:
+            delete_foto(usuario['foto'])
+        cursor.execute("DELETE FROM Usuario WHERE ID = %s", (id,))
         conn.commit()
         return jsonify({'success': True}), 200
     except Exception as e:
