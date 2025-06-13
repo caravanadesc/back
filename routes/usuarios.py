@@ -1,4 +1,5 @@
 import os
+import uuid
 from flask import Blueprint, request, jsonify, current_app, send_from_directory
 from flask_mail import Message
 from db import get_connection
@@ -14,11 +15,12 @@ def allowed_file(filename):
 
 def save_foto(file):
     if file and allowed_file(file.filename):
-        filename = secure_filename(file.filename)
+        ext = file.filename.rsplit('.', 1)[1].lower()
+        unique_name = f"{uuid.uuid4().hex}.{ext}"
         os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-        file_path = os.path.join(UPLOAD_FOLDER, filename)
+        file_path = os.path.join(UPLOAD_FOLDER, unique_name)
         file.save(file_path)
-        return filename  # Solo el nombre del archivo
+        return unique_name  # Solo el nombre único del archivo
     return None
 
 def delete_foto(filename):
