@@ -4,6 +4,7 @@ from flask_cors import CORS
 from routes.proyecto import bp
 from routes.areainvestigacion import bp_area as areainvestigacion_bp
 from routes.usuarios import bp as usuarios_bp
+from routes.glosario import bp_glosario
 from db import get_connection
 
 app = Flask(__name__)
@@ -21,6 +22,7 @@ mail = Mail(app)
 app.register_blueprint(bp)
 app.register_blueprint(usuarios_bp)
 app.register_blueprint(areainvestigacion_bp)
+app.register_blueprint(bp_glosario)
 
 @app.route('/uploads/<path:filename>')
 def uploaded_file(filename):
