@@ -15,6 +15,9 @@ def listar_areas():
         return jsonify(areas)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
 
 @bp_area.route('/areas/<int:id>', methods=['GET'])
 def obtener_area(id):
@@ -30,6 +33,9 @@ def obtener_area(id):
         return jsonify({'error': 'Área no encontrada'}), 404
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
 
 @bp_area.route('/areas', methods=['POST'])
 def crear_area():
@@ -46,6 +52,9 @@ def crear_area():
         return jsonify({'id': new_id}), 201
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
 
 @bp_area.route('/areas/<int:id>', methods=['PUT'])
 def actualizar_area(id):
@@ -61,6 +70,9 @@ def actualizar_area(id):
         return jsonify({'mensaje': 'Área actualizada'})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
 
 @bp_area.route('/areas/<int:id>', methods=['DELETE'])
 def eliminar_area(id):
@@ -74,3 +86,6 @@ def eliminar_area(id):
         return jsonify({'mensaje': 'Área eliminada'})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()

@@ -62,21 +62,9 @@ def listar_proyectos():
         return jsonify(resultados)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-
-@bp.route('/proyectos/<int:id>', methods=['GET'])
-def obtener_proyecto(id):
-    try:
-        conn = get_connection()
-        cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM Proyecto WHERE id = %s", (id,))
-        resultado = cursor.fetchone()
+    finally:
         cursor.close()
         conn.close()
-        if resultado:
-            return jsonify(resultado)
-        return jsonify({'error': 'Proyecto no encontrado'}), 404
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
 
 @bp.route('/proyectos', methods=['POST'])
 def crear_proyecto():
@@ -115,6 +103,9 @@ def crear_proyecto():
         return jsonify({'id': new_id}), 201
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
 
 @bp.route('/proyectos/<int:id>', methods=['PUT'])
 def actualizar_proyecto(id):
@@ -156,6 +147,9 @@ def actualizar_proyecto(id):
         return jsonify({'mensaje': 'Proyecto actualizado'})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
 
 @bp.route('/proyectos/<int:id>', methods=['DELETE'])
 def eliminar_proyecto(id):
@@ -189,3 +183,6 @@ def eliminar_proyecto(id):
         return jsonify({'mensaje': 'Proyecto eliminado'})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
