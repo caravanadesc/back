@@ -10,7 +10,7 @@ load_dotenv()
 # 2) Configura parámetros para el pool
 pool = pooling.MySQLConnectionPool(
     pool_name        = os.getenv('DB_POOL_NAME', 'mypool'),
-    pool_size        = int(os.getenv('DB_POOL_SIZE', 5)),
+    pool_size        = int(os.getenv('DB_POOL_SIZE', 23)),
     host             = os.getenv('DB_HOST', '69.62.71.171'),
     port             = int(os.getenv('DB_PORT', 3306)),
     user             = os.getenv('DB_USER', 'root'),
