@@ -6,9 +6,13 @@ bp_glosario = Blueprint('glosario', __name__)
 @bp_glosario.route('/glosario', methods=['GET'])
 def listar_glosario():
     try:
+        letra = request.args.get('letra')
         conn = get_connection()
         cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM Glosario")
+        if letra:
+            cursor.execute("SELECT * FROM Glosario WHERE termino LIKE %s", (letra + '%',))
+        else:
+            cursor.execute("SELECT * FROM Glosario")
         items = cursor.fetchall()
         return jsonify(items)
     except Exception as e:
