@@ -20,6 +20,7 @@ def save_image(file):
         return filename  # <--- SOLO el nombre del archivo
     return None
 
+
 @bp.route('/proyectos', methods=['GET'])
 def listar_proyectos():
     try:
@@ -63,7 +64,6 @@ def listar_proyectos():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     finally:
-        cursor.close()
         conn.close()
 
 @bp.route('/proyectos', methods=['POST'])
@@ -104,7 +104,6 @@ def crear_proyecto():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     finally:
-        cursor.close()
         conn.close()
 
 @bp.route('/proyectos/<int:id>', methods=['PUT'])
@@ -148,7 +147,6 @@ def actualizar_proyecto(id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     finally:
-        cursor.close()
         conn.close()
 
 @bp.route('/proyectos/<int:id>', methods=['DELETE'])
@@ -184,5 +182,4 @@ def eliminar_proyecto(id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     finally:
-        cursor.close()
         conn.close()
