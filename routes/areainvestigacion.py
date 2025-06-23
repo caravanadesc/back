@@ -16,7 +16,6 @@ def listar_areas():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     finally:
-        cursor.close()
         conn.close()
 
 @bp_area.route('/areas/<int:id>', methods=['GET'])
@@ -34,7 +33,6 @@ def obtener_area(id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     finally:
-        cursor.close()
         conn.close()
 
 @bp_area.route('/areas', methods=['POST'])
@@ -53,7 +51,6 @@ def crear_area():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     finally:
-        cursor.close()
         conn.close()
 
 @bp_area.route('/areas/<int:id>', methods=['PUT'])
@@ -87,5 +84,4 @@ def eliminar_area(id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     finally:
-        cursor.close()
         conn.close()
