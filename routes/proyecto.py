@@ -17,30 +17,26 @@ def save_image(file):
         os.makedirs(UPLOAD_FOLDER, exist_ok=True)
         file_path = os.path.join(UPLOAD_FOLDER, filename)
         file.save(file_path)
-        return filename  # <--- SOLO el nombre del archivo
+        return filename  # Solo el nombre del archivo
     return None
-
 
 @bp.route('/proyectos', methods=['GET'])
 def listar_proyectos():
+    conn = None
+    cursor = None
     try:
         filtros = []
         valores = []
-        # Lista de campos permitidos para filtrar
         campos = [
             'id', 'nombre', 'tipo_estudio', 'imagen', 'descripcion',
             'fecha_inicio', 'fecha_fin', 'progreso', 'estado',
             'fecha_creacion', 'fecha_actualizacion'
         ]
-
-        # Filtro de búsqueda general (texto completo)
         q = request.args.get('q')
         if q:
             condiciones = [f"{campo} LIKE %s" for campo in campos if campo != 'id' and campo != 'progreso']
             filtros.append("(" + " OR ".join(condiciones) + ")")
             valores.extend([f"%{q}%"] * len(condiciones))
-
-        # Filtros específicos por campo
         for campo in campos:
             valor = request.args.get(campo)
             if valor is not None:
@@ -50,7 +46,6 @@ def listar_proyectos():
                 else:
                     filtros.append(f"{campo} LIKE %s")
                     valores.append(f"%{valor}%")
-
         where = f"WHERE {' AND '.join(filtros)}" if filtros else ""
         sql = f"SELECT * FROM Proyecto {where}"
 
@@ -58,16 +53,17 @@ def listar_proyectos():
         cursor = conn.cursor(dictionary=True)
         cursor.execute(sql, valores)
         resultados = cursor.fetchall()
-        cursor.close()
-        conn.close()
         return jsonify(resultados)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     finally:
-        conn.close()
+        if cursor: cursor.close()
+        if conn: conn.close()
 
 @bp.route('/proyectos', methods=['POST'])
 def crear_proyecto():
+    conn = None
+    cursor = None
     try:
         if request.content_type.startswith('multipart/form-data'):
             data = request.form
@@ -98,16 +94,18 @@ def crear_proyecto():
         cursor.execute(sql, valores)
         conn.commit()
         new_id = cursor.lastrowid
-        cursor.close()
-        conn.close()
         return jsonify({'id': new_id}), 201
     except Exception as e:
+        if conn: conn.rollback()
         return jsonify({'error': str(e)}), 500
     finally:
-        conn.close()
+        if cursor: cursor.close()
+        if conn: conn.close()
 
 @bp.route('/proyectos/<int:id>', methods=['PUT'])
 def actualizar_proyecto(id):
+    conn = None
+    cursor = None
     try:
         if request.content_type.startswith('multipart/form-data'):
             data = request.form
@@ -141,16 +139,18 @@ def actualizar_proyecto(id):
         )
         cursor.execute(sql, valores)
         conn.commit()
-        cursor.close()
-        conn.close()
         return jsonify({'mensaje': 'Proyecto actualizado'})
     except Exception as e:
+        if conn: conn.rollback()
         return jsonify({'error': str(e)}), 500
     finally:
-        conn.close()
+        if cursor: cursor.close()
+        if conn: conn.close()
 
 @bp.route('/proyectos/<int:id>', methods=['DELETE'])
 def eliminar_proyecto(id):
+    conn = None
+    cursor = None
     try:
         conn = get_connection()
         cursor = conn.cursor(dictionary=True)
@@ -158,28 +158,26 @@ def eliminar_proyecto(id):
         cursor.execute("SELECT imagen FROM Proyecto WHERE id = %s", (id,))
         proyecto = cursor.fetchone()
         if not proyecto:
-            cursor.close()
-            conn.close()
             return jsonify({'error': 'Proyecto no encontrado'}), 404
 
-        imagen_path = proyecto.get('imagen')
+        imagen_nombre = proyecto.get('imagen')
         # 2. Eliminar el registro
-        cursor = conn.cursor()
         cursor.execute("DELETE FROM Proyecto WHERE id = %s", (id,))
         conn.commit()
-        cursor.close()
-        conn.close()
 
         # 3. Eliminar la imagen física si existe
-        if imagen_path and os.path.isfile(imagen_path):
-            try:
-                os.remove(imagen_path)
-            except Exception as img_err:
-                # Si falla la eliminación de la imagen, solo lo reporta en el mensaje
-                return jsonify({'mensaje': 'Proyecto eliminado, pero no se pudo borrar la imagen', 'error_imagen': str(img_err)}), 200
+        if imagen_nombre:
+            file_path = os.path.join(UPLOAD_FOLDER, imagen_nombre)
+            if os.path.isfile(file_path):
+                try:
+                    os.remove(file_path)
+                except Exception as img_err:
+                    return jsonify({'mensaje': 'Proyecto eliminado, pero no se pudo borrar la imagen', 'error_imagen': str(img_err)}), 200
 
         return jsonify({'mensaje': 'Proyecto eliminado'})
     except Exception as e:
+        if conn: conn.rollback()
         return jsonify({'error': str(e)}), 500
     finally:
-        conn.close()
+        if cursor: cursor.close()
+        if conn: conn.close()
