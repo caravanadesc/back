@@ -210,14 +210,39 @@ def get_usuarios():
 
 @bp.route('/usuarios/<int:id>', methods=['GET'])
 def get_usuario_por_id(id):
-    conn   = get_connection()
+    conn = get_connection()
     cursor = conn.cursor(dictionary=True)
     try:
         cursor.execute("SELECT * FROM Usuario WHERE id = %s", (id,))
-        fila = cursor.fetchone()
-        if not fila:
+        usuario = cursor.fetchone()
+        if not usuario:
             return jsonify({'success': False, 'error': 'Usuario no encontrado'}), 404
-        return jsonify({'success': True, 'usuario': fila}), 200
+
+        uid = usuario['ID']
+        # Si hay foto, agrega la URL pública
+        if usuario.get('foto'):
+            usuario['foto_url'] = f"/usuarios/{usuario['foto']}"
+        # Usuario_Detalle
+        cursor.execute("SELECT * FROM Usuario_Detalle WHERE ID_usuario = %s", (uid,))
+        usuario['detalle'] = cursor.fetchone()
+        # Usuario_Area_Investigacion
+        cursor.execute("""
+            SELECT uai.*, ai.nombre AS area_nombre, ai.descripcion AS area_descripcion
+            FROM Usuario_Area_Investigacion uai
+            LEFT JOIN Area_Investigacion ai ON uai.ID_area = ai.ID
+            WHERE uai.ID_usuario = %s
+        """, (uid,))
+        usuario['areas_investigacion'] = cursor.fetchall()
+        # Experiencia_Laboral
+        cursor.execute("SELECT * FROM Experiencia_Laboral WHERE ID_usuario = %s", (uid,))
+        usuario['experiencia_laboral'] = cursor.fetchall()
+        # Formacion_Academica
+        cursor.execute("SELECT * FROM Formacion_Academica WHERE ID_usuario = %s", (uid,))
+        usuario['formacion_academica'] = cursor.fetchall()
+
+        return jsonify({'success': True, 'usuario': usuario}), 200
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
     finally:
         cursor.close()
         conn.close()
