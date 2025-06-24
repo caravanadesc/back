@@ -7,9 +7,12 @@ bp_glosario = Blueprint('glosario', __name__)
 def listar_glosario():
     try:
         letra = request.args.get('letra')
+        q = request.args.get('q')
         conn = get_connection()
         cursor = conn.cursor(dictionary=True)
-        if letra:
+        if q:
+            cursor.execute("SELECT * FROM Glosario WHERE termino LIKE %s", (f"%{q}%",))
+        elif letra:
             cursor.execute("SELECT * FROM Glosario WHERE termino LIKE %s", (letra + '%',))
         else:
             cursor.execute("SELECT * FROM Glosario")
