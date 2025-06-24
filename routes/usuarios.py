@@ -92,25 +92,35 @@ def create_usuario():
             data = request.get_json() or {}
             foto = data.get('foto')
 
-        nombre   = data.get('nombre')
-        correo   = data.get('correo')
-        password = data.get('password')
-        tipo_usuario = data.get('tipo_usuario', 'usuario')
+        nombre        = data.get('nombre')
+        apellido      = data.get('apellido')
+        correo        = data.get('correo')
+        password      = data.get('password')
+        telefono      = data.get('telefono')
+        tipo_usuario  = data.get('tipo_usuario', 'usuario')
+        estado        = data.get('estado', 'activo')
+        username      = data.get('username')
 
         if not all([nombre, correo, password]):
             return jsonify({'success': False, 'error': 'Faltan nombre, correo o password'}), 400
 
         conn = get_connection()
         cursor = conn.cursor(dictionary=True)
-        sql = "INSERT INTO Usuario (nombre, correo, password, tipo_usuario, foto) VALUES (%s, %s, %s, %s, %s)"
-        cursor.execute(sql, (nombre, correo, password, tipo_usuario, foto))
+        sql = """
+            INSERT INTO Usuario
+            (nombre, apellido, correo, password, telefono, tipo_usuario, estado, username, foto)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """
+        cursor.execute(sql, (
+            nombre, apellido, correo, password, telefono, tipo_usuario, estado, username, foto
+        ))
         usuario_id = cursor.lastrowid
 
         # 2. Usuario_Detalle (opcional)
         detalle = data.get('detalle')
         if detalle:
-            sql = """INSERT INTO Usuario_Detalle (ID_usuario, telefono, direccion, ...) VALUES (%s, %s, %s, ...)"""
-            cursor.execute(sql, (usuario_id, detalle.get('telefono'), detalle.get('direccion')))  # agrega más campos según tu modelo
+            sql = """INSERT INTO Usuario_Detalle (ID_usuario, telefono, direccion) VALUES (%s, %s, %s)"""
+            cursor.execute(sql, (usuario_id, detalle.get('telefono'), detalle.get('direccion')))
 
         # 3. Usuario_Area_Investigacion (lista de IDs de áreas)
         areas = data.get('areas_investigacion', [])
