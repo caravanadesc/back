@@ -70,12 +70,10 @@ def actualizar_glosario(id):
         data = request.get_json()
         termino = data.get('termino')
         descripcion = data.get('descripcion')
-        fecha_creacion = data.get('fecha_creacion')
-        id_usuario = data.get('ID_usuario')
         conn = get_connection()
         cursor = conn.cursor()
-        sql = "UPDATE Glosario SET termino=%s, descripcion=%s, fecha_creacion=%s, ID_usuario=%s WHERE ID=%s"
-        cursor.execute(sql, (termino, descripcion, fecha_creacion, id_usuario, id))
+        sql = "UPDATE Glosario SET termino=%s, descripcion=%s WHERE ID=%s"
+        cursor.execute(sql, (termino, descripcion, id))
         conn.commit()
         return jsonify({'mensaje': 'Término actualizado'})
     except Exception as e:
