@@ -42,6 +42,8 @@ def obtener_glosario(id):
 
 @bp_glosario.route('/glosario', methods=['POST'])
 def crear_glosario():
+    conn = None
+    cursor = None
     try:
         data = request.get_json()
         termino = data.get('termino')
@@ -60,8 +62,8 @@ def crear_glosario():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     finally:
-        cursor.close()
-        conn.close()
+        if cursor: cursor.close()
+        if conn: conn.close()
 
 @bp_glosario.route('/glosario/<int:id>', methods=['PUT'])
 def actualizar_glosario(id):
