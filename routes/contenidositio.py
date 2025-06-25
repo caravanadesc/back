@@ -53,6 +53,7 @@ def listar_contenido():
         items = cursor.fetchall()
         return jsonify(items)
     except Exception as e:
+        print(f"[ERROR] error: {e}", flush=True)
         return jsonify({'error': str(e)}), 500
     finally:
         if cursor: cursor.close()
@@ -71,6 +72,7 @@ def obtener_contenido(id):
             return jsonify(item)
         return jsonify({'error': 'Contenido no encontrado'}), 404
     except Exception as e:
+        print(f"[ERROR] error: {e}", flush=True)
         return jsonify({'error': str(e)}), 500
     finally:
         if cursor: cursor.close()
@@ -114,6 +116,7 @@ def crear_contenido():
         new_id = cursor.lastrowid
         return jsonify({'id': new_id}), 201
     except Exception as e:
+        print(f"[ERROR] error: {e}", flush=True)
         return jsonify({'error': str(e)}), 500
     finally:
         if cursor: cursor.close()
@@ -163,6 +166,7 @@ def actualizar_contenido(id):
             conn.commit()
         return jsonify({'mensaje': 'Contenido actualizado'})
     except Exception as e:
+        print(f"[ERROR] error: {e}", flush=True)
         return jsonify({'error': str(e)}), 500
     finally:
         if cursor: cursor.close()
@@ -183,6 +187,7 @@ def eliminar_contenido(id):
         conn.commit()
         return jsonify({'mensaje': 'Contenido eliminado'})
     except Exception as e:
+        print(f"[ERROR] error: {e}", flush=True)
         return jsonify({'error': str(e)}), 500
     finally:
         if cursor: cursor.close()
