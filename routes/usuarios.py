@@ -1,5 +1,6 @@
 import os
 import uuid
+import json
 from flask import Blueprint, request, jsonify, current_app, send_from_directory
 from flask_mail import Message
 from db import get_connection
@@ -247,14 +248,21 @@ def get_usuario_por_id(id):
         cursor.close()
         conn.close()
 
-@bp.route('/usuarios/<int:id>', methods=['PUT'])
+@bp.route('/usuarios', methods=['PUT'])
 def update_usuario(id):
     try:
         if request.content_type.startswith('multipart/form-data'):
-            data = request.form
+            data = request.form.to_dict()
             nueva_foto = None
             if 'foto' in request.files:
                 nueva_foto = save_foto(request.files['foto'])
+            # Convierte campos anidados de string a dict/list si existen
+            for key in ['detalle', 'areas_investigacion', 'experiencia_laboral', 'formacion_academica']:
+                if key in data and isinstance(data[key], str):
+                    try:
+                        data[key] = json.loads(data[key])
+                    except Exception:
+                        data[key] = None
         else:
             data = request.get_json() or {}
             nueva_foto = data.get('foto')
