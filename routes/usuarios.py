@@ -344,6 +344,7 @@ def update_usuario(id):
         return jsonify({'success': True}), 200
     except Exception as e:
         conn.rollback()
+        print(f"[ERROR] update_usuario: {e}", flush=True)
         return jsonify({'success': False, 'error': str(e)}), 500
     finally:
         cursor.close()
