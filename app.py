@@ -10,7 +10,7 @@ from db import get_connection
 
 app = Flask(__name__)
 CORS(app)
-
+app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50 MB, ajusta según lo que necesites
 # Configuración de Flask-Mail aquí si la usas
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
