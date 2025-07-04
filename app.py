@@ -7,6 +7,7 @@ from routes.usuarios import bp as usuarios_bp
 from routes.glosario import bp_glosario
 from routes.contenidositio import bp_contenido
 from routes.preguntasfrecuentes import bp_preguntas
+from routes.eventos import bp_eventos
 from db import get_connection
 
 app = Flask(__name__)
@@ -27,6 +28,8 @@ app.register_blueprint(areainvestigacion_bp)
 app.register_blueprint(bp_glosario)
 app.register_blueprint(bp_contenido)
 app.register_blueprint(bp_preguntas)
+app.register_blueprint(bp_eventos)
+
 
 @app.route('/uploads/<path:filename>')
 def uploaded_file(filename):
