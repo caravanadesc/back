@@ -2,7 +2,6 @@ from flask import Blueprint, request, jsonify
 from db import get_connection
 import os
 import uuid
-from werkzeug.utils import secure_filename
 
 bp_eventos = Blueprint('eventos', __name__)
 
@@ -39,23 +38,41 @@ def delete_file(folder, filename):
         if os.path.isfile(file_path):
             os.remove(file_path)
 
-# --- CRUD Evento_Noticia ---
-
-@bp_eventos.route('/eventos', methods=['GET'])
-def listar_eventos():
-    conn = None
-    cursor = None
+# --- EVENTOS/NOTICIAS CRUD ---
+@bp_eventos.route('/eventos-noticias', methods=['GET'])
+def listar_eventos_noticias():
+    # Filtros: q, tipo, fecha_desde, fecha_hasta
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
     try:
-        conn = get_connection()
-        cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM Evento_Noticia ORDER BY fecha DESC")
+        filtros = []
+        valores = []
+        q = request.args.get('q')
+        tipo = request.args.get('tipo')
+        fecha_desde = request.args.get('fecha_desde')
+        fecha_hasta = request.args.get('fecha_hasta')
+        if q:
+            filtros.append("(titulo LIKE %s OR descripcion LIKE %s)")
+            valores.extend([f"%{q}%", f"%{q}%"])
+        if tipo and tipo != 'todos':
+            filtros.append("tipo = %s")
+            valores.append(tipo)
+        if fecha_desde:
+            filtros.append("fecha >= %s")
+            valores.append(fecha_desde)
+        if fecha_hasta:
+            filtros.append("fecha <= %s")
+            valores.append(fecha_hasta)
+        where = f"WHERE {' AND '.join(filtros)}" if filtros else ""
+        sql = f"SELECT * FROM Evento_Noticia {where} ORDER BY fecha DESC"
+        cursor.execute(sql, valores)
         eventos = cursor.fetchall()
         for evento in eventos:
             eid = evento['ID']
-            # Asistentes externos
+            # Asistentes
             cursor.execute("SELECT * FROM Evento_Asistente WHERE ID_evento = %s", (eid,))
             evento['asistentes'] = cursor.fetchall()
-            # Áreas de investigación
+            # Áreas
             cursor.execute("""
                 SELECT eai.ID_area, ai.nombre AS area_nombre
                 FROM Evento_Area_Investigacion eai
@@ -70,24 +87,20 @@ def listar_eventos():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     finally:
-        if cursor: cursor.close()
-        if conn: conn.close()
+        cursor.close()
+        conn.close()
 
-@bp_eventos.route('/eventos/<int:id>', methods=['GET'])
-def obtener_evento(id):
-    conn = None
-    cursor = None
+@bp_eventos.route('/eventos-noticias/<int:id>', methods=['GET'])
+def get_evento_noticia(id):
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
     try:
-        conn = get_connection()
-        cursor = conn.cursor(dictionary=True)
         cursor.execute("SELECT * FROM Evento_Noticia WHERE ID = %s", (id,))
         evento = cursor.fetchone()
         if not evento:
-            return jsonify({'error': 'Evento no encontrado'}), 404
-        # Asistentes externos
+            return jsonify({'error': 'No encontrado'}), 404
         cursor.execute("SELECT * FROM Evento_Asistente WHERE ID_evento = %s", (id,))
         evento['asistentes'] = cursor.fetchall()
-        # Áreas de investigación
         cursor.execute("""
             SELECT eai.ID_area, ai.nombre AS area_nombre
             FROM Evento_Area_Investigacion eai
@@ -95,18 +108,17 @@ def obtener_evento(id):
             WHERE eai.ID_evento = %s
         """, (id,))
         evento['areas_investigacion'] = cursor.fetchall()
-        # Materiales
         cursor.execute("SELECT * FROM Material_Evento WHERE ID_evento_noticia = %s", (id,))
         evento['materiales'] = cursor.fetchall()
         return jsonify(evento)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     finally:
-        if cursor: cursor.close()
-        if conn: conn.close()
+        cursor.close()
+        conn.close()
 
-@bp_eventos.route('/eventos', methods=['POST'])
-def crear_evento():
+@bp_eventos.route('/eventos-noticias', methods=['POST'])
+def add_evento_noticia():
     conn = None
     cursor = None
     try:
@@ -175,8 +187,8 @@ def crear_evento():
         if cursor: cursor.close()
         if conn: conn.close()
 
-@bp_eventos.route('/eventos/<int:id>', methods=['PUT'])
-def actualizar_evento(id):
+@bp_eventos.route('/eventos-noticias/<int:id>', methods=['PUT'])
+def update_evento_noticia(id):
     conn = None
     cursor = None
     try:
@@ -261,8 +273,8 @@ def actualizar_evento(id):
         if cursor: cursor.close()
         if conn: conn.close()
 
-@bp_eventos.route('/eventos/<int:id>', methods=['DELETE'])
-def eliminar_evento(id):
+@bp_eventos.route('/eventos-noticias/<int:id>', methods=['DELETE'])
+def delete_evento_noticia(id):
     conn = None
     cursor = None
     try:
@@ -292,3 +304,124 @@ def eliminar_evento(id):
     finally:
         if cursor: cursor.close()
         if conn: conn.close()
+
+# --- ASISTENTES ---
+@bp_eventos.route('/eventos-noticias/asistentes', methods=['POST'])
+def add_asistente():
+    data = request.get_json() or {}
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            "INSERT INTO Evento_Asistente (ID_evento, nombre_externo, email_externo, institucion_externa) VALUES (%s, %s, %s, %s)",
+            (data.get('ID_evento'), data.get('nombre_externo'), data.get('email_externo'), data.get('institucion_externa'))
+        )
+        conn.commit()
+        return jsonify({'success': True}), 201
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+@bp_eventos.route('/eventos-noticias/<int:ID_evento>/asistentes', methods=['DELETE'])
+def remove_asistente(ID_evento):
+    id_usuario = request.args.get('id_usuario')
+    email_externo = request.args.get('email_externo')
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        if id_usuario:
+            cursor.execute("DELETE FROM Evento_Asistente WHERE ID_evento = %s AND ID_usuario = %s", (ID_evento, id_usuario))
+        elif email_externo:
+            cursor.execute("DELETE FROM Evento_Asistente WHERE ID_evento = %s AND email_externo = %s", (ID_evento, email_externo))
+        else:
+            return jsonify({'error': 'Falta id_usuario o email_externo'}), 400
+        conn.commit()
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+# --- AREAS DE INVESTIGACION ---
+@bp_eventos.route('/eventos-noticias/areas-investigacion', methods=['POST'])
+def add_area():
+    data = request.get_json() or {}
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            "INSERT INTO Evento_Area_Investigacion (ID_evento, ID_area) VALUES (%s, %s)",
+            (data.get('ID_evento'), data.get('ID_area'))
+        )
+        conn.commit()
+        return jsonify({'success': True}), 201
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+@bp_eventos.route('/eventos-noticias/<int:ID_evento>/areas-investigacion/<int:ID_area>', methods=['DELETE'])
+def remove_area(ID_evento, ID_area):
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("DELETE FROM Evento_Area_Investigacion WHERE ID_evento = %s AND ID_area = %s", (ID_evento, ID_area))
+        conn.commit()
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+# --- MATERIALES ---
+@bp_eventos.route('/eventos-noticias/<int:ID_evento>/materiales', methods=['POST'])
+def add_material(ID_evento):
+    # Recibe tipo, nombre y archivo (como multipart/form-data)
+    if request.content_type.startswith('multipart/form-data'):
+        tipo = request.form.get('tipo')
+        nombre = request.form.get('nombre')
+        archivo = None
+        if 'archivo' in request.files:
+            archivo = save_material(request.files['archivo'])
+    else:
+        data = request.get_json() or {}
+        tipo = data.get('tipo')
+        nombre = data.get('nombre')
+        archivo = data.get('archivo')
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            "INSERT INTO Material_Evento (ID_evento_noticia, tipo, nombre, archivo) VALUES (%s, %s, %s, %s)",
+            (ID_evento, tipo, nombre, archivo)
+        )
+        conn.commit()
+        return jsonify({'success': True}), 201
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+@bp_eventos.route('/eventos-noticias/<int:ID_evento>/materiales/<int:ID_material>', methods=['DELETE'])
+def remove_material(ID_evento, ID_material):
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute("SELECT archivo FROM Material_Evento WHERE ID = %s AND ID_evento_noticia = %s", (ID_material, ID_evento))
+        material = cursor.fetchone()
+        if material and material['archivo']:
+            delete_file(MATERIAL_FOLDER, material['archivo'])
+        cursor.execute("DELETE FROM Material_Evento WHERE ID = %s AND ID_evento_noticia = %s", (ID_material, ID_evento))
+        conn.commit()
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
