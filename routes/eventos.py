@@ -85,6 +85,7 @@ def listar_eventos_noticias():
             evento['materiales'] = cursor.fetchall()
         return jsonify(eventos)
     except Exception as e:
+        print(f"[ERROR] error: {e}", flush=True)
         return jsonify({'error': str(e)}), 500
     finally:
         cursor.close()
@@ -139,8 +140,20 @@ def add_evento_noticia():
         fecha_creacion = data.get('fecha_creacion')
         ID_usuario = data.get('ID_usuario')
 
-        if not all([titulo, descripcion, fecha, lugar, tipo, fecha_creacion, ID_usuario]):
-            return jsonify({'error': 'Faltan campos obligatorios'}), 400
+        required_fields = {
+            'titulo': titulo,
+            'descripcion': descripcion,
+            'fecha': fecha,
+            'lugar': lugar,
+            'tipo': tipo,
+            'fecha_creacion': fecha_creacion,
+            'ID_usuario': ID_usuario
+        }
+        missing = [k for k, v in required_fields.items() if not v]
+        if missing:
+            msg = f"Faltan campos obligatorios: {', '.join(missing)}"
+            print(f"[ERROR] error: {msg}", flush=True)
+            return jsonify({'error': msg}), 400
 
         conn = get_connection()
         cursor = conn.cursor()
@@ -268,6 +281,7 @@ def update_evento_noticia(id):
         conn.commit()
         return jsonify({'mensaje': 'Evento actualizado'})
     except Exception as e:
+        print(f"[ERROR] error: {e}", flush=True)
         return jsonify({'error': str(e)}), 500
     finally:
         if cursor: cursor.close()
@@ -300,6 +314,7 @@ def delete_evento_noticia(id):
         conn.commit()
         return jsonify({'mensaje': 'Evento eliminado'})
     except Exception as e:
+        print(f"[ERROR] error: {e}", flush=True)
         return jsonify({'error': str(e)}), 500
     finally:
         if cursor: cursor.close()
@@ -319,6 +334,7 @@ def add_asistente():
         conn.commit()
         return jsonify({'success': True}), 201
     except Exception as e:
+        print(f"[ERROR] error: {e}", flush=True)
         return jsonify({'error': str(e)}), 500
     finally:
         cursor.close()
@@ -340,6 +356,7 @@ def remove_asistente(ID_evento):
         conn.commit()
         return jsonify({'success': True})
     except Exception as e:
+        print(f"[ERROR] error: {e}", flush=True)
         return jsonify({'error': str(e)}), 500
     finally:
         cursor.close()
@@ -359,6 +376,7 @@ def add_area():
         conn.commit()
         return jsonify({'success': True}), 201
     except Exception as e:
+        print(f"[ERROR] error: {e}", flush=True)
         return jsonify({'error': str(e)}), 500
     finally:
         cursor.close()
@@ -373,6 +391,7 @@ def remove_area(ID_evento, ID_area):
         conn.commit()
         return jsonify({'success': True})
     except Exception as e:
+        print(f"[ERROR] error: {e}", flush=True)
         return jsonify({'error': str(e)}), 500
     finally:
         cursor.close()
@@ -403,6 +422,7 @@ def add_material(ID_evento):
         conn.commit()
         return jsonify({'success': True}), 201
     except Exception as e:
+        print(f"[ERROR] error: {e}", flush=True)
         return jsonify({'error': str(e)}), 500
     finally:
         cursor.close()
@@ -421,6 +441,7 @@ def remove_material(ID_evento, ID_material):
         conn.commit()
         return jsonify({'success': True})
     except Exception as e:
+        print(f"[ERROR] error: {e}", flush=True)
         return jsonify({'error': str(e)}), 500
     finally:
         cursor.close()
