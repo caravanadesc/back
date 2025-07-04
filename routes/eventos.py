@@ -362,6 +362,21 @@ def remove_asistente(ID_evento):
         cursor.close()
         conn.close()
 
+@bp_eventos.route('/eventos-noticias/<int:ID_evento>/asistentes', methods=['GET'])
+def get_asistentes_evento(ID_evento):
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute("SELECT * FROM Evento_Asistente WHERE ID_evento = %s", (ID_evento,))
+        asistentes = cursor.fetchall()
+        return jsonify(asistentes)
+    except Exception as e:
+        print(f"[ERROR] error: {e}", flush=True)
+        return jsonify({'error': str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
 # --- AREAS DE INVESTIGACION ---
 @bp_eventos.route('/eventos-noticias/areas-investigacion', methods=['POST'])
 def add_area():
