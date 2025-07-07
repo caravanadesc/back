@@ -111,6 +111,8 @@ def obtener_proyecto(id):
     finally:
         cursor.close()
         conn.close()
+import json
+# ...resto de imports...
 
 @bp.route('/proyectos', methods=['POST'])
 def crear_proyecto():
@@ -125,6 +127,14 @@ def crear_proyecto():
         else:
             data = request.get_json() or {}
             imagen_path = data.get('imagen')
+
+        # --- CORRECCIÓN: decodifica los campos JSON si vienen como string ---
+        areas = data.get('areas_investigacion', [])
+        if isinstance(areas, str):
+            areas = json.loads(areas)
+        colabs = data.get('colaboradores', [])
+        if isinstance(colabs, str):
+            colabs = json.loads(colabs)
 
         conn = get_connection()
         cursor = conn.cursor()
@@ -149,13 +159,13 @@ def crear_proyecto():
         new_id = cursor.lastrowid
 
         # Áreas de investigación
-        for area in data.get('areas_investigacion', []):
+        for area in areas:
             cursor.execute(
                 "INSERT INTO Proyecto_Area_Investigacion (ID_proyecto, ID_area) VALUES (%s, %s)",
                 (new_id, area.get('ID_area'))
             )
         # Colaboradores
-        for colab in data.get('colaboradores', []):
+        for colab in colabs:
             cursor.execute(
                 "INSERT INTO Proyecto_Colaborador (ID_proyecto, ID_usuario) VALUES (%s, %s)",
                 (new_id, colab.get('ID_usuario'))
@@ -187,6 +197,14 @@ def actualizar_proyecto(id):
             data = request.get_json() or {}
             imagen_path = data.get('imagen')
 
+        # --- CORRECCIÓN: decodifica los campos JSON si vienen como string ---
+        areas = data.get('areas_investigacion', [])
+        if isinstance(areas, str):
+            areas = json.loads(areas)
+        colabs = data.get('colaboradores', [])
+        if isinstance(colabs, str):
+            colabs = json.loads(colabs)
+
         conn = get_connection()
         cursor = conn.cursor()
         sql = """
@@ -211,21 +229,19 @@ def actualizar_proyecto(id):
         cursor.execute(sql, valores)
 
         # Actualizar áreas de investigación
-        if 'areas_investigacion' in data:
-            cursor.execute("DELETE FROM Proyecto_Area_Investigacion WHERE ID_proyecto = %s", (id,))
-            for area in data['areas_investigacion']:
-                cursor.execute(
-                    "INSERT INTO Proyecto_Area_Investigacion (ID_proyecto, ID_area) VALUES (%s, %s)",
-                    (id, area.get('ID_area'))
-                )
+        cursor.execute("DELETE FROM Proyecto_Area_Investigacion WHERE ID_proyecto = %s", (id,))
+        for area in areas:
+            cursor.execute(
+                "INSERT INTO Proyecto_Area_Investigacion (ID_proyecto, ID_area) VALUES (%s, %s)",
+                (id, area.get('ID_area'))
+            )
         # Actualizar colaboradores
-        if 'colaboradores' in data:
-            cursor.execute("DELETE FROM Proyecto_Colaborador WHERE ID_proyecto = %s", (id,))
-            for colab in data['colaboradores']:
-                cursor.execute(
-                    "INSERT INTO Proyecto_Colaborador (ID_proyecto, ID_usuario) VALUES (%s, %s)",
-                    (id, colab.get('ID_usuario'))
-                )
+        cursor.execute("DELETE FROM Proyecto_Colaborador WHERE ID_proyecto = %s", (id,))
+        for colab in colabs:
+            cursor.execute(
+                "INSERT INTO Proyecto_Colaborador (ID_proyecto, ID_usuario) VALUES (%s, %s)",
+                (id, colab.get('ID_usuario'))
+            )
 
         conn.commit()
         return jsonify({'mensaje': 'Proyecto actualizado'})
