@@ -73,6 +73,7 @@ def listar_proyectos():
             proyecto['colaboradores'] = cursor.fetchall()
         return jsonify(resultados)
     except Exception as e:
+        print(f"[ERROR] error: {e}", flush=True)
         return jsonify({'error': str(e)}), 500
     finally:
         if cursor: cursor.close()
@@ -105,6 +106,7 @@ def obtener_proyecto(id):
         proyecto['colaboradores'] = cursor.fetchall()
         return jsonify(proyecto)
     except Exception as e:
+        print(f"[ERROR] error: {e}", flush=True)
         return jsonify({'error': str(e)}), 500
     finally:
         cursor.close()
@@ -163,6 +165,7 @@ def crear_proyecto():
         return jsonify({'id': new_id}), 201
     except Exception as e:
         if conn: conn.rollback()
+        print(f"[ERROR] error: {e}", flush=True)
         return jsonify({'error': str(e)}), 500
     finally:
         if cursor: cursor.close()
@@ -228,6 +231,7 @@ def actualizar_proyecto(id):
         return jsonify({'mensaje': 'Proyecto actualizado'})
     except Exception as e:
         if conn: conn.rollback()
+        print(f"[ERROR] error: {e}", flush=True)
         return jsonify({'error': str(e)}), 500
     finally:
         if cursor: cursor.close()
@@ -266,6 +270,7 @@ def eliminar_proyecto(id):
         return jsonify({'mensaje': 'Proyecto eliminado'})
     except Exception as e:
         if conn: conn.rollback()
+        print(f"[ERROR] error: {e}", flush=True)
         return jsonify({'error': str(e)}), 500
     finally:
         if cursor: cursor.close()
@@ -286,6 +291,7 @@ def get_areas_proyecto(id):
         """, (id,))
         return jsonify(cursor.fetchall())
     except Exception as e:
+        print(f"[ERROR] error: {e}", flush=True)
         return jsonify({'error': str(e)}), 500
     finally:
         cursor.close()
@@ -308,6 +314,7 @@ def add_area_proyecto(id):
         conn.commit()
         return jsonify({'mensaje': 'Área agregada'}), 201
     except Exception as e:
+        print(f"[ERROR] error: {e}", flush=True)
         return jsonify({'error': str(e)}), 500
     finally:
         cursor.close()
@@ -326,6 +333,7 @@ def delete_area_proyecto(id, id_area):
         conn.commit()
         return jsonify({'mensaje': 'Área eliminada'})
     except Exception as e:
+        print(f"[ERROR] error: {e}", flush=True)                
         return jsonify({'error': str(e)}), 500
     finally:
         cursor.close()
@@ -345,6 +353,7 @@ def get_colaboradores_proyecto(id):
         """, (id,))
         return jsonify(cursor.fetchall())
     except Exception as e:
+        print(f"[ERROR] error: {e}", flush=True)
         return jsonify({'error': str(e)}), 500
     finally:
         cursor.close()
@@ -367,6 +376,7 @@ def add_colaborador_proyecto(id):
         conn.commit()
         return jsonify({'mensaje': 'Colaborador agregado'}), 201
     except Exception as e:
+        print(f"[ERROR] error: {e}", flush=True)
         return jsonify({'error': str(e)}), 500
     finally:
         cursor.close()
@@ -385,6 +395,7 @@ def delete_colaborador_proyecto(id, id_usuario):
         conn.commit()
         return jsonify({'mensaje': 'Colaborador eliminado'})
     except Exception as e:
+        print(f"[ERROR] error: {e}", flush=True)
         return jsonify({'error': str(e)}), 500
     finally:
         cursor.close()
