@@ -11,6 +11,8 @@ from routes.eventos import bp_eventos
 from routes.guias import bp_guias
 from db import get_connection
 
+
+import os
 app = Flask(__name__)
 CORS(app)
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50 MB, ajusta según lo que necesites
@@ -36,6 +38,16 @@ app.register_blueprint(bp_guias)
 @app.route('/uploads/<path:filename>')
 def uploaded_file(filename):
     return send_from_directory('src/uploads', filename)
+UPLOAD_FOLDER = 'src/uploads'
+@app.route('/upload')
+def list_uploads():
+    try:
+        files = os.listdir(UPLOAD_FOLDER)
+        # Opcional: Filtrar solo archivos (excluir subdirectorios)
+        files = [f for f in files if os.path.isfile(os.path.join(UPLOAD_FOLDER, f))]
+        return jsonify(files)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)
