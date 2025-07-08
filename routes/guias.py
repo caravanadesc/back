@@ -209,7 +209,7 @@ def actualizar_guia(id):
 @bp_guias.route('/guias/<int:id>', methods=['DELETE'])
 def eliminar_guia(id):
     conn = get_connection()
-    cursor = conn.cursor()
+    cursor = conn.cursor(dictionary=True)
     try:
         # Eliminar archivos físicos de recursos e imagen
         cursor.execute("SELECT recurso FROM Guia_Recurso WHERE ID_guia = %s", (id,))
