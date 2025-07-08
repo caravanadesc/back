@@ -6,7 +6,7 @@ from werkzeug.utils import secure_filename
 
 bp_guias = Blueprint('guias', __name__)
 
-UPLOAD_FOLDER = 'src/uploads'
+UPLOAD_FOLDER = 'src/uploads/guias'
 RECURSO_FOLDER = 'src/uploads/tutoriales'
 ALLOWED_IMAGE_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 ALLOWED_FILE_EXTENSIONS = {'pdf', 'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx', 'mp4', 'mov', 'avi'} | ALLOWED_IMAGE_EXTENSIONS
