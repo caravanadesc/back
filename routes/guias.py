@@ -120,10 +120,9 @@ def crear_guia():
                 imagen = save_file(request.files['imagen'], UPLOAD_FOLDER, ALLOWED_IMAGE_EXTENSIONS)
             recursos = []
             if 'recursos' in request.files:
-                # Si se suben varios archivos como recursos
                 for file in request.files.getlist('recursos'):
-                    nombre = save_file(file, RECURSO_FOLDER, ALLOWED_FILE_EXTENSIONS)
-                    recursos.append({'tipo': file.mimetype.split('/')[-1], 'recurso': nombre, 'descripcion': ''})
+                    nombre_unico = save_file(file, RECURSO_FOLDER, ALLOWED_FILE_EXTENSIONS)
+                    recursos.append({'tipo': file.mimetype.split('/')[-1], 'recurso': nombre_unico, 'descripcion': ''})
         else:
             data = request.get_json() or {}
             imagen = data.get('imagen')
@@ -135,7 +134,6 @@ def crear_guia():
         )
         guia_id = cursor.lastrowid
 
-        # Recursos
         for recurso in recursos:
             archivo = recurso.get('recurso')
             if request.content_type.startswith('multipart/form-data') and not archivo and 'archivo' in recurso:
@@ -144,7 +142,6 @@ def crear_guia():
                 "INSERT INTO Guia_Recurso (ID_guia, tipo, recurso, descripcion) VALUES (%s, %s, %s, %s)",
                 (guia_id, recurso.get('tipo'), archivo, recurso.get('descripcion'))
             )
-        # Áreas de investigación
         for area in data.get('areas_investigacion', []):
             cursor.execute(
                 "INSERT INTO Guia_Area_Investigacion (ID_guia, ID_area) VALUES (%s, %s)",
@@ -177,18 +174,18 @@ def actualizar_guia(id):
             "UPDATE Guia_Tutorial SET titulo=%s, descripcion=%s, fecha_publicacion=%s, ID_usuario=%s, categoria=%s, imagen=%s WHERE ID=%s",
             (data.get('titulo'), data.get('descripcion'), data.get('fecha_publicacion'), data.get('ID_usuario'), data.get('categoria'), imagen, id)
         )
-        # Actualizar recursos
         if 'recursos' in data:
             cursor.execute("DELETE FROM Guia_Recurso WHERE ID_guia = %s", (id,))
             for recurso in data['recursos']:
                 archivo = recurso.get('recurso')
                 if request.content_type.startswith('multipart/form-data') and not archivo and 'archivo' in recurso:
                     archivo = save_file(recurso['archivo'], RECURSO_FOLDER, ALLOWED_FILE_EXTENSIONS)
+                elif request.content_type.startswith('multipart/form-data') and 'archivo' in recurso:
+                    archivo = save_file(recurso['archivo'], RECURSO_FOLDER, ALLOWED_FILE_EXTENSIONS)
                 cursor.execute(
                     "INSERT INTO Guia_Recurso (ID_guia, tipo, recurso, descripcion) VALUES (%s, %s, %s, %s)",
                     (id, recurso.get('tipo'), archivo, recurso.get('descripcion'))
                 )
-        # Actualizar áreas de investigación
         if 'areas_investigacion' in data:
             cursor.execute("DELETE FROM Guia_Area_Investigacion WHERE ID_guia = %s", (id,))
             for area in data['areas_investigacion']:
