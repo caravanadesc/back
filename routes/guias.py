@@ -71,7 +71,8 @@ def listar_guias():
             if guia.get('imagen'):
                 guia['imagen_url'] = f"/uploads/{guia['imagen']}"
         return jsonify(guias)
-    except Exception as e:
+    except Exception as e:  
+        print(f"[ERROR] error: {e}", flush=True)
         return jsonify({'error': str(e)}), 500
     finally:
         cursor.close()
@@ -103,6 +104,7 @@ def obtener_guia(id):
             guia['imagen_url'] = f"/uploads/{guia['imagen']}"
         return jsonify(guia)
     except Exception as e:
+        print(f"[ERROR] error: {e}", flush=True)
         return jsonify({'error': str(e)}), 500
     finally:
         cursor.close()
@@ -150,6 +152,7 @@ def crear_guia():
         conn.commit()
         return jsonify({'id': guia_id}), 201
     except Exception as e:
+        print(f"[ERROR] error: {e}", flush=True)
         conn.rollback()
         return jsonify({'error': str(e)}), 500
     finally:
@@ -196,6 +199,7 @@ def actualizar_guia(id):
         conn.commit()
         return jsonify({'mensaje': 'Guía actualizada'})
     except Exception as e:
+        print(f"[ERROR] error: {e}", flush=True)
         conn.rollback()
         return jsonify({'error': str(e)}), 500
     finally:
@@ -226,6 +230,7 @@ def eliminar_guia(id):
         conn.commit()
         return jsonify({'mensaje': 'Guía eliminada'})
     except Exception as e:
+        print(f"[ERROR] error: {e}", flush=True)
         conn.rollback()
         return jsonify({'error': str(e)}), 500
     finally:
@@ -245,6 +250,7 @@ def get_recursos_guia(id):
                 r['recurso_url'] = f"/uploads/tutoriales/{r['recurso']}" if r['recurso'] else None
         return jsonify(recursos)
     except Exception as e:
+        print(f"[ERROR] error: {e}", flush=True)
         return jsonify({'error': str(e)}), 500
     finally:
         cursor.close()
@@ -263,6 +269,7 @@ def get_areas_guia(id):
         """, (id,))
         return jsonify(cursor.fetchall())
     except Exception as e:
+        print(f"[ERROR] error: {e}", flush=True)
         return jsonify({'error': str(e)}), 500
     finally:
         cursor.close()
@@ -292,6 +299,7 @@ def add_recurso_guia(id):
         conn.commit()
         return jsonify({'mensaje': 'Recurso agregado'}), 201
     except Exception as e:
+        print(f"[ERROR] error: {e}", flush=True)
         conn.rollback()
         return jsonify({'error': str(e)}), 500
     finally:
@@ -313,6 +321,7 @@ def delete_recurso_guia(id, id_recurso):
         conn.commit()
         return jsonify({'mensaje': 'Recurso eliminado'})
     except Exception as e:
+        print(f"[ERROR] error: {e}", flush=True)
         conn.rollback()
         return jsonify({'error': str(e)}), 500
     finally:
@@ -332,6 +341,7 @@ def add_area_guia(id):
         conn.commit()
         return jsonify({'mensaje': 'Área agregada'}), 201
     except Exception as e:
+        print(f"[ERROR] error: {e}", flush=True)
         conn.rollback()
         return jsonify({'error': str(e)}), 500
     finally:
@@ -347,6 +357,7 @@ def delete_area_guia(id, id_area):
         conn.commit()
         return jsonify({'mensaje': 'Área eliminada'})
     except Exception as e:
+        print(f"[ERROR] error: {e}", flush=True)
         conn.rollback()
         return jsonify({'error': str(e)}), 500
     finally:
