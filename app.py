@@ -39,15 +39,36 @@ app.register_blueprint(bp_guias)
 def uploaded_file(filename):
     return send_from_directory('src/uploads', filename)
 UPLOAD_FOLDER = 'src/uploads'
-@app.route('/upload')
-def list_uploads():
+
+@app.route('/upload', defaults={'subpath': ''})
+@app.route('/upload/<path:subpath>')
+def list_uploads(subpath):
     try:
-        files = os.listdir(UPLOAD_FOLDER)
-        # Opcional: Filtrar solo archivos (excluir subdirectorios)
-        files = [f for f in files if os.path.isfile(os.path.join(UPLOAD_FOLDER, f))]
-        return jsonify(files)
+        # Construir el path completo, evitando traversal
+        target_dir = os.path.abspath(os.path.join(UPLOAD_FOLDER, subpath))
+        base_dir = os.path.abspath(UPLOAD_FOLDER)
+
+        # Seguridad: prevenir acceder fuera del directorio base
+        if not target_dir.startswith(base_dir):
+            return jsonify({'error': 'Acceso no permitido'}), 403
+
+        if not os.path.exists(target_dir) or not os.path.isdir(target_dir):
+            return jsonify({'error': 'Directorio no encontrado'}), 404
+
+        # Obtener contenido del directorio
+        contents = os.listdir(target_dir)
+        result = []
+        for item in contents:
+            full_path = os.path.join(target_dir, item)
+            result.append({
+                'name': item,
+                'is_dir': os.path.isdir(full_path),
+                'size': os.path.getsize(full_path) if os.path.isfile(full_path) else None
+            })
+
+        return jsonify(result)
+
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-
 if __name__ == '__main__':
     app.run(debug=True)
