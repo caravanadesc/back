@@ -244,6 +244,15 @@ def actualizar_guia(id):
                         "INSERT INTO Guia_Recurso (ID_guia, tipo, recurso, descripcion) VALUES (%s, %s, %s, %s)",
                         (id, recurso.get('tipo'), archivo, recurso.get('descripcion'))
                     )
+        elif 'recurso' in data:
+            cursor.execute("DELETE FROM Guia_Recurso WHERE ID_guia = %s", (id,))
+            for recurso in data['recursos']:
+                archivo = recurso.get('recurso')
+                if archivo:
+                    cursor.execute(
+                        "INSERT INTO Guia_Recurso (ID_guia, tipo, recurso, descripcion) VALUES (%s, %s, %s, %s)",
+                        (id, recurso.get('tipo'), archivo, recurso.get('descripcion'))
+                    )
 
         # Áreas de investigación: solo si llegan
         if 'areas_investigacion' in data:
