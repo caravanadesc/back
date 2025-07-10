@@ -34,6 +34,7 @@ def listar_metodologias():
                 m['imagen_url'] = f"/uploads/metodologia/{m['imagen']}"
         return jsonify(metodologias)
     except Exception as e:
+        print(f"[ERROR] error: {e}", flush=True)
         return jsonify({'error': str(e)}), 500
     finally:
         cursor.close()
@@ -52,6 +53,7 @@ def obtener_metodologia(id):
             metodologia['imagen_url'] = f"/uploads/metodologia/{metodologia['imagen']}"
         return jsonify(metodologia)
     except Exception as e:
+        print(f"[ERROR] error: {e}", flush=True)
         return jsonify({'error': str(e)}), 500
     finally:
         cursor.close()
@@ -95,6 +97,7 @@ def crear_metodologia():
         conn.commit()
         return jsonify({'id': cursor.lastrowid}), 201
     except Exception as e:
+        print(f"[ERROR] error: {e}", flush=True)
         conn.rollback()
         return jsonify({'error': str(e)}), 500
     finally:
@@ -134,6 +137,7 @@ def actualizar_metodologia(id):
         conn.commit()
         return jsonify({'mensaje': 'Metodología actualizada'})
     except Exception as e:
+        print(f"[ERROR] error: {e}", flush=True)
         conn.rollback()
         return jsonify({'error': str(e)}), 500
     finally:
@@ -155,6 +159,7 @@ def eliminar_metodologia(id):
         conn.commit()
         return jsonify({'mensaje': 'Metodología eliminada'})
     except Exception as e:
+        print(f"[ERROR] error: {e}", flush=True)
         conn.rollback()
         return jsonify({'error': str(e)}), 500
     finally:
@@ -171,6 +176,7 @@ def listar_caracteristicas():
         caracteristicas = cursor.fetchall()
         return jsonify(caracteristicas)
     except Exception as e:
+        print(f"[ERROR] error: {e}", flush=True)
         return jsonify({'error': str(e)}), 500
     finally:
         cursor.close()
@@ -187,6 +193,7 @@ def obtener_caracteristica(id):
             return jsonify({'error': 'No encontrada'}), 404
         return jsonify(caracteristica)
     except Exception as e:
+        print(f"[ERROR] error: {e}", flush=True)
         return jsonify({'error': str(e)}), 500
     finally:
         cursor.close()
@@ -210,6 +217,7 @@ def crear_caracteristica():
         conn.commit()
         return jsonify({'id': cursor.lastrowid}), 201
     except Exception as e:
+        print(f"[ERROR] error: {e}", flush=True)
         conn.rollback()
         return jsonify({'error': str(e)}), 500
     finally:
@@ -235,6 +243,7 @@ def actualizar_caracteristica(id):
         conn.commit()
         return jsonify({'mensaje': 'Característica actualizada'})
     except Exception as e:
+        print(f"[ERROR] error: {e}", flush=True)
         conn.rollback()
         return jsonify({'error': str(e)}), 500
     finally:
@@ -250,6 +259,7 @@ def eliminar_caracteristica(id):
         conn.commit()
         return jsonify({'mensaje': 'Característica eliminada'})
     except Exception as e:
+        print(f"[ERROR] error: {e}", flush=True)
         conn.rollback()
         return jsonify({'error': str(e)}), 500
     finally:
