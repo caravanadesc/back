@@ -15,15 +15,23 @@ def allowed_file(filename, allowed):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in allowed
 
 def save_file(file, folder, allowed):
-    if file and allowed_file(file.filename, allowed):
-        ext = file.filename.rsplit('.', 1)[1].lower()
-        unique_name = f"{uuid.uuid4().hex}.{ext}"
-        os.makedirs(folder, exist_ok=True)
-        file_path = os.path.join(folder, unique_name)
+    if not file:
+        print("[ERROR] No se recibió archivo para guardar.", flush=True)
+        return None
+    if not allowed_file(file.filename, allowed):
+        print(f"[ERROR] Archivo con extensión no permitida: {file.filename}", flush=True)
+        return None
+    ext = file.filename.rsplit('.', 1)[1].lower()
+    unique_name = f"{uuid.uuid4().hex}.{ext}"
+    os.makedirs(folder, exist_ok=True)
+    file_path = os.path.join(folder, unique_name)
+    try:
         file.save(file_path)
         print(f"[INFO] Archivo guardado: {unique_name} en {file_path}", flush=True)
         return unique_name
-    return None
+    except Exception as e:
+        print(f"[ERROR] No se pudo guardar el archivo {file.filename}: {e}", flush=True)
+        return None
 
 # --- CRUD Guia_Tutorial ---
 @bp_guias.route('/guias', methods=['GET'])
@@ -120,15 +128,24 @@ def crear_guia():
             data = request.form
             imagen = None
             if 'imagen' in request.files:
-                imagen = save_file(request.files['imagen'], UPLOAD_FOLDER, ALLOWED_IMAGE_EXTENSIONS)
+                imagen_file = request.files['imagen']
+                imagen = save_file(imagen_file, UPLOAD_FOLDER, ALLOWED_IMAGE_EXTENSIONS)
+                if not imagen:
+                    print(f"[ERROR] No se pudo guardar la imagen: {imagen_file.filename}", flush=True)
+            else:
+                print("[ERROR] No se recibió imagen en el formulario.", flush=True)
             recursos = []
             if 'recursos' in request.files:
                 for file in request.files.getlist('recursos'):
                     nombre_unico = save_file(file, RECURSO_FOLDER, ALLOWED_FILE_EXTENSIONS)
+                    if not nombre_unico:
+                        print(f"[ERROR] No se pudo guardar el recurso: {file.filename}", flush=True)
                     recursos.append({'tipo': file.mimetype.split('/')[-1], 'recurso': nombre_unico, 'descripcion': ''})
         else:
             data = request.get_json() or {}
             imagen = data.get('imagen')
+            if not imagen:
+                print("[ERROR] No se recibió imagen en el JSON.", flush=True)
             recursos = data.get('recursos', [])
 
         cursor.execute(
