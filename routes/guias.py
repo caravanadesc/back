@@ -135,7 +135,7 @@ def crear_guia():
             else:
                 print("[ERROR] No se recibió imagen en el formulario.", flush=True)
             recursos = []
-            if 'recursos' in request.files:
+            if 'recursos' in request.files or 'recurso' in request.files:
                 for file in request.files.getlist('recursos'):
                     nombre_unico = save_file(file, RECURSO_FOLDER, ALLOWED_FILE_EXTENSIONS)
                     if not nombre_unico:
