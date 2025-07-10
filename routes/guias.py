@@ -182,31 +182,70 @@ def actualizar_guia(id):
     conn = get_connection()
     cursor = conn.cursor()
     try:
+        # Obtener datos actuales de la guía
+        cursor.execute("SELECT imagen FROM Guia_Tutorial WHERE ID=%s", (id,))
+        guia_actual = cursor.fetchone()
+        imagen_actual = guia_actual[0] if guia_actual else None
+
         if request.content_type.startswith('multipart/form-data'):
             data = request.form
-            imagen = None
-            if 'imagen' in request.files:
+            imagen = imagen_actual
+            # Solo actualiza si llega archivo y tiene nombre
+            if 'imagen' in request.files and request.files['imagen'].filename:
                 imagen = save_file(request.files['imagen'], UPLOAD_FOLDER, ALLOWED_IMAGE_EXTENSIONS)
+                if not imagen:
+                    print(f"[ERROR] No se pudo guardar la imagen: {request.files['imagen'].filename}", flush=True)
+            else:
+                print("[INFO] No se recibió imagen nueva, se mantiene la anterior.", flush=True)
         else:
             data = request.get_json() or {}
-            imagen = data.get('imagen')
+            imagen = data.get('imagen', imagen_actual)
 
-        cursor.execute(
-            "UPDATE Guia_Tutorial SET titulo=%s, descripcion=%s, fecha_publicacion=%s, ID_usuario=%s, categoria=%s, imagen=%s WHERE ID=%s",
-            (data.get('titulo'), data.get('descripcion'), data.get('fecha_publicacion'), data.get('ID_usuario'), data.get('categoria'), imagen, id)
-        )
-        if 'recursos' in data:
+        # Construir el query dinámicamente para no actualizar imagen si no corresponde
+        campos = [
+            "titulo=%s",
+            "descripcion=%s",
+            "fecha_publicacion=%s",
+            "ID_usuario=%s",
+            "categoria=%s"
+        ]
+        valores = [
+            data.get('titulo'),
+            data.get('descripcion'),
+            data.get('fecha_publicacion'),
+            data.get('ID_usuario'),
+            data.get('categoria')
+        ]
+        if imagen != imagen_actual:
+            campos.append("imagen=%s")
+            valores.append(imagen)
+        valores.append(id)
+        sql = f"UPDATE Guia_Tutorial SET {', '.join(campos)} WHERE ID=%s"
+        cursor.execute(sql, valores)
+
+        # Recursos: solo si llegan archivos nuevos o recursos en JSON
+        if request.content_type.startswith('multipart/form-data') and 'recursos' in request.files:
+            cursor.execute("DELETE FROM Guia_Recurso WHERE ID_guia = %s", (id,))
+            for file in request.files.getlist('recursos'):
+                if file and file.filename:
+                    nombre_unico = save_file(file, RECURSO_FOLDER, ALLOWED_FILE_EXTENSIONS)
+                    if not nombre_unico:
+                        print(f"[ERROR] No se pudo guardar el recurso: {file.filename}", flush=True)
+                    cursor.execute(
+                        "INSERT INTO Guia_Recurso (ID_guia, tipo, recurso, descripcion) VALUES (%s, %s, %s, %s)",
+                        (id, file.mimetype.split('/')[-1], nombre_unico, '')
+                    )
+        elif 'recursos' in data:
             cursor.execute("DELETE FROM Guia_Recurso WHERE ID_guia = %s", (id,))
             for recurso in data['recursos']:
                 archivo = recurso.get('recurso')
-                if request.content_type.startswith('multipart/form-data') and not archivo and 'archivo' in recurso:
-                    archivo = save_file(recurso['archivo'], RECURSO_FOLDER, ALLOWED_FILE_EXTENSIONS)
-                elif request.content_type.startswith('multipart/form-data') and 'archivo' in recurso:
-                    archivo = save_file(recurso['archivo'], RECURSO_FOLDER, ALLOWED_FILE_EXTENSIONS)
-                cursor.execute(
-                    "INSERT INTO Guia_Recurso (ID_guia, tipo, recurso, descripcion) VALUES (%s, %s, %s, %s)",
-                    (id, recurso.get('tipo'), archivo, recurso.get('descripcion'))
-                )
+                if archivo:
+                    cursor.execute(
+                        "INSERT INTO Guia_Recurso (ID_guia, tipo, recurso, descripcion) VALUES (%s, %s, %s, %s)",
+                        (id, recurso.get('tipo'), archivo, recurso.get('descripcion'))
+                    )
+
+        # Áreas de investigación: solo si llegan
         if 'areas_investigacion' in data:
             cursor.execute("DELETE FROM Guia_Area_Investigacion WHERE ID_guia = %s", (id,))
             for area in data['areas_investigacion']:
@@ -214,6 +253,7 @@ def actualizar_guia(id):
                     "INSERT INTO Guia_Area_Investigacion (ID_guia, ID_area) VALUES (%s, %s)",
                     (id, area.get('ID_area'))
                 )
+
         conn.commit()
         return jsonify({'mensaje': 'Guía actualizada'})
     except Exception as e:
