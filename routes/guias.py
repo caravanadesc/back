@@ -21,6 +21,7 @@ def save_file(file, folder, allowed):
         os.makedirs(folder, exist_ok=True)
         file_path = os.path.join(folder, unique_name)
         file.save(file_path)
+        print(f"[INFO] Archivo guardado: {unique_name} en {file_path}", flush=True)
         return unique_name
     return None
 

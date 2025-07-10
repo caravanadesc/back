@@ -2,10 +2,11 @@ from flask import Blueprint, request, jsonify
 from db import get_connection
 import os
 from werkzeug.utils import secure_filename
+import uuid
 
 bp = Blueprint('proyecto', __name__)
 
-UPLOAD_FOLDER = 'src/uploads'
+UPLOAD_FOLDER = 'src/uploads/proyectos'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
 def allowed_file(filename):
@@ -13,11 +14,12 @@ def allowed_file(filename):
 
 def save_image(file):
     if file and allowed_file(file.filename):
-        filename = secure_filename(file.filename)
+        ext = file.filename.rsplit('.', 1)[1].lower()
+        unique_name = f"{uuid.uuid4().hex}.{ext}"
         os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-        file_path = os.path.join(UPLOAD_FOLDER, filename)
+        file_path = os.path.join(UPLOAD_FOLDER, unique_name)
         file.save(file_path)
-        return filename
+        return unique_name
     return None
 
 # --- PROYECTOS CRUD ---
