@@ -21,17 +21,31 @@ def save_image(file):
     file.save(file_path)
     return unique_name
 
+def get_caracteristicas(conn, metodologia_id):
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM Metodologia_Caracteristica WHERE ID_metodologia = %s", (metodologia_id,))
+    return cursor.fetchall()
+
 # --- Metodologia_Prueba CRUD ---
 @bp_metodologia.route('/metodologias', methods=['GET'])
 def listar_metodologias():
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
     try:
-        cursor.execute("SELECT * FROM Metodologia_Prueba ORDER BY fecha_creacion DESC")
+        filtros = []
+        valores = []
+        for campo in ['nombre', 'tipo', 'fecha_creacion']:
+            valor = request.args.get(campo)
+            if valor:
+                filtros.append(f"{campo} LIKE %s")
+                valores.append(f"%{valor}%")
+        where = f"WHERE {' AND '.join(filtros)}" if filtros else ""
+        cursor.execute(f"SELECT * FROM Metodologia_Prueba {where} ORDER BY fecha_creacion DESC", valores)
         metodologias = cursor.fetchall()
         for m in metodologias:
             if m.get('imagen'):
                 m['imagen_url'] = f"/uploads/metodologia/{m['imagen']}"
+            m['caracteristicas'] = get_caracteristicas(conn, m['ID'])
         return jsonify(metodologias)
     except Exception as e:
         print(f"[ERROR] error: {e}", flush=True)
@@ -51,6 +65,7 @@ def obtener_metodologia(id):
             return jsonify({'error': 'No encontrada'}), 404
         if metodologia.get('imagen'):
             metodologia['imagen_url'] = f"/uploads/metodologia/{metodologia['imagen']}"
+        metodologia['caracteristicas'] = get_caracteristicas(conn, metodologia['ID'])
         return jsonify(metodologia)
     except Exception as e:
         print(f"[ERROR] error: {e}", flush=True)
@@ -65,10 +80,14 @@ def crear_metodologia():
     cursor = conn.cursor()
     try:
         imagen = None
+        caracteristicas = []
         if request.content_type.startswith('multipart/form-data'):
             data = request.form
             if 'imagen' in request.files and request.files['imagen'].filename:
                 imagen = save_image(request.files['imagen'])
+            if 'caracteristicas' in data:
+                import json
+                caracteristicas = json.loads(data.get('caracteristicas'))
             cursor.execute(
                 "INSERT INTO Metodologia_Prueba (nombre, descripcion, imagen, tipo, fecha_creacion) VALUES (%s, %s, %s, %s, %s)",
                 (
@@ -82,6 +101,7 @@ def crear_metodologia():
         else:
             data = request.get_json() or {}
             imagen = data.get('imagen')
+            caracteristicas = data.get('caracteristicas', [])
             cursor.execute(
                 "INSERT INTO Metodologia_Prueba (nombre, descripcion, imagen, tipo, fecha_creacion) VALUES (%s, %s, %s, %s, %s)",
                 (
@@ -92,8 +112,15 @@ def crear_metodologia():
                     data.get('fecha_creacion')
                 )
             )
+        metodologia_id = cursor.lastrowid
+        # Insertar características si vienen
+        for c in caracteristicas:
+            cursor.execute(
+                "INSERT INTO Metodologia_Caracteristica (ID_metodologia, caracteristica, descripcion) VALUES (%s, %s, %s)",
+                (metodologia_id, c.get('caracteristica'), c.get('descripcion'))
+            )
         conn.commit()
-        return jsonify({'id': cursor.lastrowid}), 201
+        return jsonify({'id': metodologia_id}), 201
     except Exception as e:
         print(f"[ERROR] error: {e}", flush=True)
         conn.rollback()
@@ -111,14 +138,19 @@ def actualizar_metodologia(id):
         actual = cursor.fetchone()
         imagen_actual = actual[0] if actual else None
 
+        caracteristicas = []
         if request.content_type.startswith('multipart/form-data'):
             data = request.form
             imagen = imagen_actual
             if 'imagen' in request.files and request.files['imagen'].filename:
                 imagen = save_image(request.files['imagen'])
+            if 'caracteristicas' in data:
+                import json
+                caracteristicas = json.loads(data.get('caracteristicas'))
         else:
             data = request.get_json() or {}
             imagen = data.get('imagen', imagen_actual)
+            caracteristicas = data.get('caracteristicas', [])
 
         cursor.execute(
             "UPDATE Metodologia_Prueba SET nombre=%s, descripcion=%s, imagen=%s, tipo=%s, fecha_creacion=%s WHERE ID=%s",
@@ -131,6 +163,14 @@ def actualizar_metodologia(id):
                 id
             )
         )
+        # Actualizar características: eliminar todas y volver a insertar si vienen
+        if isinstance(caracteristicas, list):
+            cursor.execute("DELETE FROM Metodologia_Caracteristica WHERE ID_metodologia = %s", (id,))
+            for c in caracteristicas:
+                cursor.execute(
+                    "INSERT INTO Metodologia_Caracteristica (ID_metodologia, caracteristica, descripcion) VALUES (%s, %s, %s)",
+                    (id, c.get('caracteristica'), c.get('descripcion'))
+                )
         conn.commit()
         return jsonify({'mensaje': 'Metodología actualizada'})
     except Exception as e:
@@ -152,6 +192,7 @@ def eliminar_metodologia(id):
             img_path = os.path.join(UPLOAD_FOLDER, img_row['imagen'])
             if os.path.isfile(img_path):
                 os.remove(img_path)
+        cursor.execute("DELETE FROM Metodologia_Caracteristica WHERE ID_metodologia = %s", (id,))
         cursor.execute("DELETE FROM Metodologia_Prueba WHERE ID = %s", (id,))
         conn.commit()
         return jsonify({'mensaje': 'Metodología eliminada'})
@@ -163,7 +204,7 @@ def eliminar_metodologia(id):
         cursor.close()
         conn.close()
 
-# --- Metodologia_Caracteristica CRUD ---
+# --- Metodologia_Caracteristica CRUD individual ---
 @bp_metodologia.route('/caracteristicas', methods=['GET'])
 def listar_caracteristicas():
     conn = get_connection()
