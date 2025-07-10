@@ -64,34 +64,32 @@ def crear_metodologia():
     conn = get_connection()
     cursor = conn.cursor()
     try:
+        imagen = None
         if request.content_type.startswith('multipart/form-data'):
             data = request.form
-            imagen = None
             if 'imagen' in request.files and request.files['imagen'].filename:
                 imagen = save_image(request.files['imagen'])
             cursor.execute(
-                "INSERT INTO Metodologia_Prueba (nombre, descripcion, imagen, tipo, fecha_creacion, `Textos completos`) VALUES (%s, %s, %s, %s, %s, %s)",
+                "INSERT INTO Metodologia_Prueba (nombre, descripcion, imagen, tipo, fecha_creacion) VALUES (%s, %s, %s, %s, %s)",
                 (
                     data.get('nombre'),
                     data.get('descripcion'),
                     imagen,
                     data.get('tipo'),
-                    data.get('fecha_creacion'),
-                    data.get('Textos completos')
+                    data.get('fecha_creacion')
                 )
             )
         else:
             data = request.get_json() or {}
             imagen = data.get('imagen')
             cursor.execute(
-                "INSERT INTO Metodologia_Prueba (nombre, descripcion, imagen, tipo, fecha_creacion, `Textos completos`) VALUES (%s, %s, %s, %s, %s, %s)",
+                "INSERT INTO Metodologia_Prueba (nombre, descripcion, imagen, tipo, fecha_creacion) VALUES (%s, %s, %s, %s, %s)",
                 (
                     data.get('nombre'),
                     data.get('descripcion'),
                     imagen,
                     data.get('tipo'),
-                    data.get('fecha_creacion'),
-                    data.get('Textos completos')
+                    data.get('fecha_creacion')
                 )
             )
         conn.commit()
@@ -123,14 +121,13 @@ def actualizar_metodologia(id):
             imagen = data.get('imagen', imagen_actual)
 
         cursor.execute(
-            "UPDATE Metodologia_Prueba SET nombre=%s, descripcion=%s, imagen=%s, tipo=%s, fecha_creacion=%s, `Textos completos`=%s WHERE ID=%s",
+            "UPDATE Metodologia_Prueba SET nombre=%s, descripcion=%s, imagen=%s, tipo=%s, fecha_creacion=%s WHERE ID=%s",
             (
                 data.get('nombre'),
                 data.get('descripcion'),
                 imagen,
                 data.get('tipo'),
                 data.get('fecha_creacion'),
-                data.get('Textos completos'),
                 id
             )
         )
@@ -206,12 +203,11 @@ def crear_caracteristica():
     try:
         data = request.get_json() or {}
         cursor.execute(
-            "INSERT INTO Metodologia_Caracteristica (ID_metodologia, caracteristica, descripcion, `Textos completos`) VALUES (%s, %s, %s, %s)",
+            "INSERT INTO Metodologia_Caracteristica (ID_metodologia, caracteristica, descripcion) VALUES (%s, %s, %s)",
             (
                 data.get('ID_metodologia'),
                 data.get('caracteristica'),
-                data.get('descripcion'),
-                data.get('Textos completos')
+                data.get('descripcion')
             )
         )
         conn.commit()
@@ -231,12 +227,11 @@ def actualizar_caracteristica(id):
     try:
         data = request.get_json() or {}
         cursor.execute(
-            "UPDATE Metodologia_Caracteristica SET ID_metodologia=%s, caracteristica=%s, descripcion=%s, `Textos completos`=%s WHERE ID=%s",
+            "UPDATE Metodologia_Caracteristica SET ID_metodologia=%s, caracteristica=%s, descripcion=%s WHERE ID=%s",
             (
                 data.get('ID_metodologia'),
                 data.get('caracteristica'),
                 data.get('descripcion'),
-                data.get('Textos completos'),
                 id
             )
         )
