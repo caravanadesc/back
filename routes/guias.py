@@ -124,29 +124,49 @@ def crear_guia():
     conn = get_connection()
     cursor = conn.cursor()
     try:
+        recursos = []
         if request.content_type.startswith('multipart/form-data'):
             data = request.form
             imagen = None
-            if 'imagen' in request.files:
-                imagen_file = request.files['imagen']
-                imagen = save_file(imagen_file, UPLOAD_FOLDER, ALLOWED_IMAGE_EXTENSIONS)
+            if 'imagen' in request.files and request.files['imagen'].filename:
+                imagen = save_file(request.files['imagen'], UPLOAD_FOLDER, ALLOWED_IMAGE_EXTENSIONS)
                 if not imagen:
-                    print(f"[ERROR] No se pudo guardar la imagen: {imagen_file.filename}", flush=True)
+                    print(f"[ERROR] No se pudo guardar la imagen: {request.files['imagen'].filename}", flush=True)
             else:
-                print("[ERROR] No se recibió imagen en el formulario.", flush=True)
-            recursos = []
-            if 'recursos' in request.files or 'recurso' in request.files:
-                for file in request.files.getlist('recursos'):
-                    nombre_unico = save_file(file, RECURSO_FOLDER, ALLOWED_FILE_EXTENSIONS)
-                    if not nombre_unico:
-                        print(f"[ERROR] No se pudo guardar el recurso: {file.filename}", flush=True)
-                    recursos.append({'tipo': file.mimetype.split('/')[-1], 'recurso': nombre_unico, 'descripcion': ''})
+                print("[INFO] No se recibió imagen en el formulario.", flush=True)
+
+            # --- AQUÍ: Manejo de recurso como archivo único ---
+            if 'recurso' in request.files and request.files['recurso'].filename:
+                archivo = save_file(request.files['recurso'], RECURSO_FOLDER, ALLOWED_FILE_EXTENSIONS)
+                if archivo:
+                    tipo = data.get('tipo', request.files['recurso'].mimetype.split('/')[-1])
+                    descripcion = data.get('descripcion', '')
+                    recursos.append({'tipo': tipo, 'recurso': archivo, 'descripcion': descripcion})
+            # --- Manejo de recurso como link único (en form) ---
+            elif 'recurso' in data and data.get('recurso'):
+                tipo = data.get('tipo', 'link')
+                recurso = data.get('recurso')
+                descripcion = data.get('descripcion', '')
+                recursos.append({'tipo': tipo, 'recurso': recurso, 'descripcion': descripcion})
+            # --- Manejo de recursos como lista (poco común en form) ---
+            elif 'recursos' in data:
+                recursos = data.getlist('recursos')
         else:
             data = request.get_json() or {}
             imagen = data.get('imagen')
             if not imagen:
-                print("[ERROR] No se recibió imagen en el JSON.", flush=True)
-            recursos = data.get('recursos', [])
+                print("[INFO] No se recibió imagen en el JSON.", flush=True)
+            recursos = []
+            if 'recursos' in data:
+                recursos = data['recursos']
+                if isinstance(recursos, dict):
+                    recursos = [recursos]
+            elif 'recurso' in data and data.get('recurso'):
+                recursos = [{
+                    'tipo': data.get('tipo', 'link'),
+                    'recurso': data.get('recurso'),
+                    'descripcion': data.get('descripcion', '')
+                }]
 
         cursor.execute(
             "INSERT INTO Guia_Tutorial (titulo, descripcion, fecha_publicacion, ID_usuario, categoria, imagen) VALUES (%s, %s, %s, %s, %s, %s)",
@@ -156,12 +176,13 @@ def crear_guia():
 
         for recurso in recursos:
             archivo = recurso.get('recurso')
-            if request.content_type.startswith('multipart/form-data') and not archivo and 'archivo' in recurso:
-                archivo = save_file(recurso['archivo'], RECURSO_FOLDER, ALLOWED_FILE_EXTENSIONS)
-            cursor.execute(
-                "INSERT INTO Guia_Recurso (ID_guia, tipo, recurso, descripcion) VALUES (%s, %s, %s, %s)",
-                (guia_id, recurso.get('tipo'), archivo, recurso.get('descripcion'))
-            )
+            tipo = recurso.get('tipo', 'link')
+            descripcion = recurso.get('descripcion', '')
+            if archivo:
+                cursor.execute(
+                    "INSERT INTO Guia_Recurso (ID_guia, tipo, recurso, descripcion) VALUES (%s, %s, %s, %s)",
+                    (guia_id, tipo, archivo, descripcion)
+                )
         for area in data.get('areas_investigacion', []):
             cursor.execute(
                 "INSERT INTO Guia_Area_Investigacion (ID_guia, ID_area) VALUES (%s, %s)",
@@ -190,7 +211,6 @@ def actualizar_guia(id):
         if request.content_type.startswith('multipart/form-data'):
             data = request.form
             imagen = imagen_actual
-            # Solo actualiza si llega archivo y tiene nombre
             if 'imagen' in request.files and request.files['imagen'].filename:
                 imagen = save_file(request.files['imagen'], UPLOAD_FOLDER, ALLOWED_IMAGE_EXTENSIONS)
                 if not imagen:
@@ -223,36 +243,58 @@ def actualizar_guia(id):
         sql = f"UPDATE Guia_Tutorial SET {', '.join(campos)} WHERE ID=%s"
         cursor.execute(sql, valores)
 
-        # Recursos: solo si llegan archivos nuevos o recursos en JSON
-        if request.content_type.startswith('multipart/form-data') and 'recursos' in request.files:
-            cursor.execute("DELETE FROM Guia_Recurso WHERE ID_guia = %s", (id,))
-            for file in request.files.getlist('recursos'):
-                if file and file.filename:
-                    nombre_unico = save_file(file, RECURSO_FOLDER, ALLOWED_FILE_EXTENSIONS)
-                    if not nombre_unico:
-                        print(f"[ERROR] No se pudo guardar el recurso: {file.filename}", flush=True)
+        # --- Recursos: solo si llegan ---
+        recursos_actualizados = False
+
+        if request.content_type.startswith('multipart/form-data'):
+            # Si llega archivo
+            if 'recurso' in request.files and request.files['recurso'].filename:
+                cursor.execute("DELETE FROM Guia_Recurso WHERE ID_guia = %s", (id,))
+                archivo = save_file(request.files['recurso'], RECURSO_FOLDER, ALLOWED_FILE_EXTENSIONS)
+                if archivo:
+                    tipo = data.get('tipo', request.files['recurso'].mimetype.split('/')[-1])
+                    descripcion = data.get('descripcion', '')
                     cursor.execute(
                         "INSERT INTO Guia_Recurso (ID_guia, tipo, recurso, descripcion) VALUES (%s, %s, %s, %s)",
-                        (id, file.mimetype.split('/')[-1], nombre_unico, '')
+                        (id, tipo, archivo, descripcion)
                     )
+                    recursos_actualizados = True
+            # Si llega link como recurso (en form)
+            elif 'recurso' in data and data.get('recurso'):
+                cursor.execute("DELETE FROM Guia_Recurso WHERE ID_guia = %s", (id,))
+                tipo = data.get('tipo', 'link')
+                recurso = data.get('recurso')
+                descripcion = data.get('descripcion', '')
+                cursor.execute(
+                    "INSERT INTO Guia_Recurso (ID_guia, tipo, recurso, descripcion) VALUES (%s, %s, %s, %s)",
+                    (id, tipo, recurso, descripcion)
+                )
+                recursos_actualizados = True
         elif 'recursos' in data:
             cursor.execute("DELETE FROM Guia_Recurso WHERE ID_guia = %s", (id,))
-            for recurso in data['recursos']:
+            recursos = data['recursos']
+            if isinstance(recursos, dict):
+                recursos = [recursos]
+            for recurso in recursos:
                 archivo = recurso.get('recurso')
+                tipo = recurso.get('tipo', 'link')
+                descripcion = recurso.get('descripcion', '')
                 if archivo:
                     cursor.execute(
                         "INSERT INTO Guia_Recurso (ID_guia, tipo, recurso, descripcion) VALUES (%s, %s, %s, %s)",
-                        (id, recurso.get('tipo'), archivo, recurso.get('descripcion'))
+                        (id, tipo, archivo, descripcion)
                     )
-        elif 'recurso' in data:
+                    recursos_actualizados = True
+        elif 'recurso' in data and data.get('recurso'):
             cursor.execute("DELETE FROM Guia_Recurso WHERE ID_guia = %s", (id,))
-            for recurso in data['recursos']:
-                archivo = recurso.get('recurso')
-                if archivo:
-                    cursor.execute(
-                        "INSERT INTO Guia_Recurso (ID_guia, tipo, recurso, descripcion) VALUES (%s, %s, %s, %s)",
-                        (id, recurso.get('tipo'), archivo, recurso.get('descripcion'))
-                    )
+            tipo = data.get('tipo', 'link')
+            recurso = data.get('recurso')
+            descripcion = data.get('descripcion', '')
+            cursor.execute(
+                "INSERT INTO Guia_Recurso (ID_guia, tipo, recurso, descripcion) VALUES (%s, %s, %s, %s)",
+                (id, tipo, recurso, descripcion)
+            )
+            recursos_actualizados = True
 
         # Áreas de investigación: solo si llegan
         if 'areas_investigacion' in data:
