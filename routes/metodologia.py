@@ -21,6 +21,7 @@ def save_image(file):
     file.save(file_path)
     return unique_name
 
+# --- Metodologia_Prueba CRUD ---
 @bp_metodologia.route('/metodologias', methods=['GET'])
 def listar_metodologias():
     conn = get_connection()
@@ -66,8 +67,6 @@ def crear_metodologia():
             imagen = None
             if 'imagen' in request.files and request.files['imagen'].filename:
                 imagen = save_image(request.files['imagen'])
-            else:
-                imagen = None
             cursor.execute(
                 "INSERT INTO Metodologia_Prueba (nombre, descripcion, imagen, tipo, fecha_creacion, `Textos completos`) VALUES (%s, %s, %s, %s, %s, %s)",
                 (
@@ -160,3 +159,99 @@ def eliminar_metodologia(id):
         return jsonify({'error': str(e)}), 500
     finally:
         cursor.close()
+        conn.close()
+
+# --- Metodologia_Caracteristica CRUD ---
+@bp_metodologia.route('/caracteristicas', methods=['GET'])
+def listar_caracteristicas():
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute("SELECT * FROM Metodologia_Caracteristica ORDER BY ID DESC")
+        caracteristicas = cursor.fetchall()
+        return jsonify(caracteristicas)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+@bp_metodologia.route('/caracteristicas/<int:id>', methods=['GET'])
+def obtener_caracteristica(id):
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute("SELECT * FROM Metodologia_Caracteristica WHERE ID = %s", (id,))
+        caracteristica = cursor.fetchone()
+        if not caracteristica:
+            return jsonify({'error': 'No encontrada'}), 404
+        return jsonify(caracteristica)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+@bp_metodologia.route('/caracteristicas', methods=['POST'])
+def crear_caracteristica():
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        data = request.get_json() or {}
+        cursor.execute(
+            "INSERT INTO Metodologia_Caracteristica (ID_metodologia, caracteristica, descripcion, `Textos completos`) VALUES (%s, %s, %s, %s)",
+            (
+                data.get('ID_metodologia'),
+                data.get('caracteristica'),
+                data.get('descripcion'),
+                data.get('Textos completos')
+            )
+        )
+        conn.commit()
+        return jsonify({'id': cursor.lastrowid}), 201
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'error': str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+@bp_metodologia.route('/caracteristicas/<int:id>', methods=['PUT'])
+def actualizar_caracteristica(id):
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        data = request.get_json() or {}
+        cursor.execute(
+            "UPDATE Metodologia_Caracteristica SET ID_metodologia=%s, caracteristica=%s, descripcion=%s, `Textos completos`=%s WHERE ID=%s",
+            (
+                data.get('ID_metodologia'),
+                data.get('caracteristica'),
+                data.get('descripcion'),
+                data.get('Textos completos'),
+                id
+            )
+        )
+        conn.commit()
+        return jsonify({'mensaje': 'Característica actualizada'})
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'error': str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+@bp_metodologia.route('/caracteristicas/<int:id>', methods=['DELETE'])
+def eliminar_caracteristica(id):
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("DELETE FROM Metodologia_Caracteristica WHERE ID = %s", (id,))
+        conn.commit()
+        return jsonify({'mensaje': 'Característica eliminada'})
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'error': str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
