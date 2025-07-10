@@ -9,6 +9,7 @@ from routes.contenidositio import bp_contenido
 from routes.preguntasfrecuentes import bp_preguntas
 from routes.eventos import bp_eventos
 from routes.guias import bp_guias
+from routes.metodologia import bp_metodologia
 from db import get_connection
 
 
@@ -33,6 +34,7 @@ app.register_blueprint(bp_contenido)
 app.register_blueprint(bp_preguntas)
 app.register_blueprint(bp_eventos)
 app.register_blueprint(bp_guias)
+app.register_blueprint(bp_metodologia)
 
 
 @app.route('/uploads/<path:filename>')
